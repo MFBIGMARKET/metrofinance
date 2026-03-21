@@ -1775,11 +1775,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function recalculateDueDates() {
-            bills.forEach(b => {
-                if (b.dateStr) b.billDate = parseDate(b.dateStr).getTime();
-                if(!b.isManuallyMoved) { const vData = vendors[b.supplier] || { creditDays: 0, category: 'N/A' }; b.category = vData.category; let dueDateObj = new Date(b.billDate); dueDateObj.setDate(dueDateObj.getDate() + vData.creditDays); b.dueDateStr = formatDateToDDMMYYYY(dueDateObj); b.dueDate = dueDateObj.getTime(); }
-            }); saveBills(); 
+    bills.forEach(b => {
+        if (b.dateStr) b.billDate = parseDate(b.dateStr).getTime();
+        if(!b.isManuallyMoved && !b.isIssued && !b.isCleared) {
+            const vData = vendors[b.supplier] || { creditDays: 0, category: 'N/A' }; 
+            b.category = vData.category; 
+            let dueDateObj = new Date(b.billDate); 
+            dueDateObj.setDate(dueDateObj.getDate() + vData.creditDays); 
+            b.dueDateStr = formatDateToDDMMYYYY(dueDateObj); 
+            b.dueDate = dueDateObj.getTime(); 
         }
+    }); 
+    saveBills(); 
+}
 
         function clearVendorData() { if(confirm("Delete all vendor data?")) { vendors = {}; saveVendors(); populateVendorFilter(); renderVendorSettings(); recalculateDueDates(); } }
         function clearPurchaseData() { if(confirm("Delete all purchase data?")) { bills = []; pendingBills = []; saveBills(); savePendingBills(); initApp(); } }
