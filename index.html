@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>METRO FRESH IRITTY - Payment Tracker & Dashboard</title>
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a73e8">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <!-- Google Fonts & Material Symbols -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            /* Google Dashboard Theme */
+            --primary: #1a73e8;       
+            --primary-hover: #1557b0;
+            --primary-bg: #e8f0fe;
+            --surface: #ffffff;
+            --background: #f8f9fa;
+            --text-main: #202124;
+            --text-muted: #5f6368;
+            --border: #dadce0;
+            --border-light: #f1f3f4;
+            
+            /* Status Colors */
+            --success: #1e8e3e;
+            --success-bg: #e6f4ea;
+            --warning: #ea8600; 
+            --warning-bg: #fef7e0;
+            --error: #d93025;
+            --error-bg: #fce8e6;
+            --info: #1a73e8;
+            --info-bg: #e8f0fe;
+            
+            /* Purchase Type Colors */
+            --purple: #7b1fa2;
+            --purple-bg: #f3e8fd;
+            --teal: #00796b;
+            --teal-bg: #e0f2f1;
+
+            /* Shadows */
+            --shadow-1: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            --shadow-2: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-3: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Roboto', sans-serif; background-color: var(--background); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        h1, h2, h3, h4, h5, h6, .brand { font-family: 'Google Sans', 'Roboto', sans-serif; }
+
+        /* --- Header --- */
+        header { background-color: var(--surface); height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: 1px solid var(--border); z-index: 100; flex-shrink: 0; }
+        .brand { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 500; color: var(--text-muted); }
+        .brand span.title-main { color: var(--text-main); font-weight: 500; }
+        .header-actions { display: flex; gap: 16px; align-items: center; }
+
+        /* --- Controls & Buttons --- */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; height: 36px; border: 1px solid transparent; border-radius: 4px; font-size: 14px; font-weight: 500; font-family: 'Google Sans', sans-serif; cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s, color 0.2s; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover); box-shadow: var(--shadow-1); }
+        .btn-outline { background-color: transparent; color: var(--primary); border-color: var(--border); }
+        .btn-outline:hover { background-color: var(--primary-bg); border-color: var(--primary-bg); }
+        .btn-danger { background-color: var(--error-bg); color: var(--error); border-color: transparent; }
+        .btn-danger:hover { background-color: #fbdac8; }
+
+        .icon-toggle-group { display: flex; background: var(--surface); border-radius: 24px; border: 1px solid var(--border); overflow: hidden; }
+        .toggle-btn { background: transparent; border: none; padding: 6px 16px; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .toggle-btn:hover { color: var(--text-main); background: var(--background); }
+        .toggle-btn.active { background: var(--primary-bg); color: var(--primary); }
+
+        .icon-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .icon-btn:hover { background-color: var(--background); color: var(--text-main); }
+        .icon-btn.active-state { background-color: var(--primary-bg); color: var(--primary); }
+
+        /* Floating Action Button */
+        .fab { position: fixed; bottom: 32px; right: 32px; width: 64px; height: 64px; background-color: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-3); cursor: pointer; z-index: 150; border: none; transition: transform 0.2s, background-color 0.2s; }
+        .fab:hover { transform: scale(1.05); background-color: var(--primary-hover); }
+        .fab.hidden { display: none !important; }
+        .fab .material-symbols-outlined { font-size: 32px; }
+
+        /* Modal Overlays */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(32,33,36,0.6); display: flex; align-items: center; justify-content: center; z-index: 300; opacity: 0; visibility: hidden; transition: 0.2s ease; backdrop-filter: blur(2px); }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-card { background: var(--surface); width: 100%; max-width: 450px; border-radius: 12px; box-shadow: 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12); transform: translateY(20px) scale(0.98); transition: 0.2s ease; display: flex; flex-direction: column; overflow: hidden; max-height: 90vh; }
+        .modal-overlay.active .modal-card { transform: translateY(0) scale(1); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--background); }
+        .modal-header h3 { font-size: 18px; font-weight: 500; color: var(--text-main); }
+        .modal-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; background: var(--surface); overflow-y: auto;}
+        .modal-tabs { display: flex; background: var(--background); padding: 4px; border-radius: 8px; margin-bottom: 8px; }
+        .modal-tab-btn { flex: 1; padding: 8px 0; text-align: center; border: none; background: transparent; border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+        .modal-tab-btn.active { background: var(--surface); color: var(--primary); box-shadow: var(--shadow-1); }
+
+        /* --- Main Layout --- */
+        .main-content { flex: 1; display: flex; flex-direction: column; padding: 24px; overflow: hidden; gap: 16px; position: relative;}
+
+        /* --- Filters Section --- */
+        .filters-container { display: none; gap: 16px; align-items: flex-end; flex-wrap: nowrap; overflow-x: auto; background: var(--surface); padding: 16px 24px; border-radius: 8px; border: 1px solid var(--border); flex-shrink: 0; animation: slideDown 0.2s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 150px; }
+        .filter-group-row { display: flex; gap: 12px; align-items: center; border: 1px solid var(--border); padding: 4px 12px; border-radius: 4px; background: var(--background); }
+        .filter-label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+        .modern-input { padding: 0 12px; height: 36px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; background: var(--surface); color: var(--text-main); outline: none; font-family: 'Roboto', sans-serif; width: 100%; transition: border-color 0.2s; }
+        .modern-input:focus { border-color: var(--primary); }
+        .filter-group-row .modern-input { border: none; background: transparent; height: 28px; padding: 0; }
+        .filter-group-row .modern-input:focus { padding: 0; }
+        .divider-vertical { width: 1px; height: 40px; background: var(--border); margin: 0 8px; }
+
+        /* --- View Containers --- */
+        .view { display: none; flex: 1; overflow: hidden; }
+        .view.active { display: flex; }
+
+        /* Universal Chips */
+        .chip { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+        .type-gst { background: var(--info-bg); color: var(--info); }
+        .type-est { background: var(--purple-bg); color: var(--purple); }
+        .type-inter { background: var(--teal-bg); color: var(--teal); }
+        .type-other { background: var(--border-light); color: var(--text-muted); }
+        .cat-a { background: var(--error-bg); color: var(--error); }
+        .cat-b { background: var(--warning-bg); color: var(--warning); }
+        .cat-c { background: var(--success-bg); color: var(--success); }
+        .cat-default { background: var(--border-light); color: var(--text-muted); }
+
+        /* --- Dashboard View --- */
+        .dashboard-layout { display: flex; gap: 24px; width: 100%; height: 100%; overflow: hidden; }
+        .dashboard-left { flex: 6; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 4px; }
+        .dash-grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 16px; flex: 1; }
+        .dash-btn { background: var(--surface); border: 1px solid var(--border-light); border-radius: 16px; padding: 24px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 2px 8px rgba(0,0,0,0.04); color: var(--text-main); position: relative; overflow: hidden;}
+        .dash-btn::before { content: ''; position: absolute; inset: 0; background: var(--primary); opacity: 0; transition: opacity 0.3s; z-index: 0; }
+        .dash-btn:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(26,115,232,0.1); border-color: transparent; }
+        .dash-btn:hover::before { opacity: 0.03; }
+        .dash-btn.active { background: var(--primary); border-color: var(--primary); color: white; box-shadow: 0 8px 20px rgba(26,115,232,0.25); }
+        .dash-btn .dash-icon-wrapper { background: var(--primary-bg); color: var(--primary); padding: 16px; border-radius: 16px; transition: all 0.3s; z-index: 1; display: flex; align-items: center; justify-content: center;}
+        .dash-btn:hover .dash-icon-wrapper { transform: scale(1.1); }
+        .dash-btn.active .dash-icon-wrapper { background: rgba(255,255,255,0.2); color: white; }
+        .dash-btn .material-symbols-outlined { font-size: 36px; z-index: 1;}
+        .dash-btn span.lbl { font-size: 16px; font-weight: 600; font-family: 'Google Sans', sans-serif; z-index: 1;}
+        .dashboard-right { flex: 4; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: var(--shadow-1); }
+        .dash-model-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px; }
+        .dash-model-header h3 { font-size: 22px; font-weight: 500; color: var(--text-main); }
+        .chart-container { position: relative; height: 300px; width: 100%; margin-top: 20px; }
+
+        /* --- Table View --- */
+        .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; flex: 1; overflow: hidden; width: 100%;}
+        .active-search-banner { display: none; background: var(--info-bg); padding: 12px 16px; border-bottom: 1px solid var(--border); justify-content: space-between; align-items: center; }
+        .active-search-banner.active { display: flex; }
+        .table-wrapper { overflow: auto; flex: 1; }
+        table { width: 100%; border-collapse: collapse; }
+        .table-wrapper table { min-width: 1000px; }
+        th, td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); text-align: left; vertical-align: middle; }
+        th:last-child, td:last-child { border-right: none; }
+        th { background-color: var(--surface); color: var(--text-muted); font-weight: 500; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 0 var(--border); }
+        tbody tr:hover { background-color: var(--background); }
+
+        /* --- Calendar View --- */
+        .calendar-layout { display: flex; gap: 16px; flex: 1; overflow: hidden; width: 100%; }
+        
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .calendar-nav { display: flex; align-items: center; gap: 16px; }
+        .calendar-nav h2 { font-size: 18px; font-weight: 400; color: var(--text-main); width: 150px; text-align: center; }
+        
+        /* 1. Highlight the background of the Today cell */
+.cal-cell.today {
+    background-color: #e8f0fe !important; /* Light blue background */
+}
+
+/* 2. Highlight the date number with a solid blue circle */
+.cal-cell.today .cal-date {
+    background-color: #1a73e8 !important; /* Solid primary blue */
+    color: white !important;               /* White text */
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;                    /* Make it a circle */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    bottom: 4px;                           /* Match previous positioning */
+    right: 4px;
+    font-weight: 700;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* 3. Ensure the Selected cell (clicked) has a distinct border to not confuse with Today */
+.cal-cell.selected {
+    outline: 2px solid #1a73e8;
+    outline-offset: -2px;
+    z-index: 10;
+}
+        .cal-cell.selected::after { content: ''; position: absolute; inset: 0; border: 2px solid var(--primary); pointer-events: none; }
+        .cal-cell.over-budget { border-top: 4px solid var(--error); padding-top: 4px; }
+        
+        .calendar-grid-container {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    /* DAY HEADER HEIGHT + (MIN 120px per week, or fill rest of space) */
+    grid-template-rows: 40px repeat(var(--week-count, 5), minmax(120px, 1fr));
+    background-color: #dadce0 !important; /* The Grid Line Color */
+    gap: 1px !important; /* The Grid Line Thickness */
+    border: 1px solid #dadce0;
+    height: 100%;
+    min-height: 0;
+}
+
+/* 1. The Main Calendar View Container */
+#calendarView.active {
+    display: flex !important;
+    height: 100%; /* Occupy full remaining screen height */
+}
+
+.calendar-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* 2. The Grid Fix */
+#calendarGridContainer {
+    display: grid !important;
+    flex: 1; /* Stretch to fill all vertical space */
+    grid-template-columns: repeat(7, 1fr);
+    /* Force 40px header, then divide remaining space equally between weeks */
+    grid-template-rows: 40px repeat(var(--week-count, 5), 1fr);
+    background-color: #dadce0 !important; /* Grid Line Color */
+    gap: 1px !important; /* Grid Line Thickness */
+    border-top: 1px solid #dadce0;
+}
+
+/* 3. The Cell Fix */
+.cal-cell {
+    background-color: #ffffff !important;
+    position: relative !important;
+    padding: 6px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    min-height: 0; /* Allows 1fr to work */
+    overflow: hidden;
+}
+
+.cal-cell.empty {
+    background-color: #f8f9fa !important;
+}
+
+.cal-cell:hover:not(.empty) {
+    background-color: #f1f3f4 !important;
+}
+
+.cal-day-header {
+    background-color: #ffffff !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    font-size: 12px;
+    color: #70757a;
+    text-transform: uppercase;
+}
+
+/* 4. The Pill and Date Fix */
+.cal-top-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+}
+
+.cal-date {
+    position: absolute !important;
+    bottom: 4px;
+    right: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #3c4043;
+    z-index: 5;
+}
+
+.cal-sale, .cal-total, .cal-cleared {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 4px;
+    border: 1px solid;
+    width: fit-content;
+    max-width: 95%;
+    display: block;
+    line-height: 1.2;
+}
+
+/* Colors */
+.cal-sale.predicted { background: #e8f0fe; color: #1a73e8; border-color: #d2e3fc; }
+.cal-sale.actual { background: #e6f4ea; color: #1e8e3e; border-color: #ceead6; }
+.cal-total { background: #fce8e6; color: #d93025; border-color: #fad2cf; }
+.cal-cleared { background: #fff7e0; color: #b05e00; border-color: #ffe082; }
+
+        /* Right: Permanent Side Panel */
+        .calendar-side { width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+        .side-header { padding: 20px 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+        .side-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .side-header h3 { font-size: 22px; font-weight: 500; color: var(--text-main); margin: 0; letter-spacing: -0.3px; }
+        .side-filter-group { display: flex; gap: 2px; background: var(--background); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
+        .side-filter-btn { border: none; background: transparent; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+        .side-filter-btn:hover { color: var(--text-main); }
+        .side-filter-btn.active { background: var(--surface); color: var(--text-main); box-shadow: var(--shadow-1); }
+        .side-summary { display: flex; justify-content: space-between; align-items: baseline; }
+        .side-summary-text { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+        .side-summary-amount { font-size: 28px; font-weight: 500; color: var(--error); font-family: 'Google Sans', sans-serif; letter-spacing: -0.5px; }
+        .side-content { padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; background: #f8f9fa; }
+
+        .bill-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; box-shadow: var(--shadow-1); display: flex; flex-direction: column; gap: 10px; border-left: 4px solid transparent; }
+        .bill-card.is-expense { border-left-color: var(--warning); background: #faf9f5; }
+        
+        /* Highlight for Split or Manually Edited (Yellow) */
+        .bill-card.is-manually-moved { background: #fff9c4 !important; border-left-color: #fbc02d !important; border-left-width: 4px; }
+        
+        /* Highlight for Issued (Red) - Overrides Yellow if applied */
+        .bill-card.is-issued { background: var(--error-bg) !important; border-left-color: var(--error) !important; border-left-width: 4px; }
+        
+        /* Highlight for Cleared (Grey) - Overrides All */
+        .bill-card.is-cleared { opacity: 0.6; background: var(--background) !important; border-left-color: transparent !important; }
+        
+        .bill-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .bill-card-title { font-size: 15px; font-weight: 500; color: var(--text-main); line-height: 1.4; margin-bottom: 4px; }
+        .bill-card-meta { font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px; }
+        .bill-card-amount { font-size: 18px; font-weight: 500; color: var(--text-main); margin-top: 4px; }
+        .bill-card-action { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; }
+        .bill-card-action label { font-size: 13px; color: var(--text-main); display: flex; align-items: center; gap: 6px; font-weight: 500; cursor: pointer;}
+        .bill-card-action input[type="date"] { padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; color: var(--text-main); outline: none; background: var(--surface); }
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); padding: 40px 20px; height: 100%; }
+        .empty-state .material-symbols-outlined { font-size: 48px; color: var(--border); margin-bottom: 16px; }
+
+        /* --- Settings Page View --- */
+        .settings-layout { display: flex; flex-direction: column; width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;}
+        .settings-header { display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--background); }
+        .settings-header h2 { font-size: 20px; font-weight: 400; color: var(--text-main); margin: 0;}
+        .settings-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); padding: 0 24px; }
+        .settings-tab-btn { background: transparent; border: none; border-bottom: 3px solid transparent; padding: 16px 24px; font-size: 14px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+        .settings-tab-btn:hover { color: var(--primary); background: var(--primary-bg); }
+        .settings-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .settings-body { flex: 1; overflow-y: auto; padding: 24px; background: var(--background); }
+        .settings-pane { display: none; flex-direction: column; gap: 24px; max-width: 1000px; margin: 0 auto; width: 100%; }
+        .settings-pane.active { display: flex; }
+        .settings-section { background: var(--surface); padding: 24px; border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-1); }
+        .settings-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end; margin-bottom: 16px; padding: 16px; background: var(--background); border-radius: 8px; transition: background-color 0.4s ease; }
+
+        /* --- Floating Search Bar --- */
+        .search-overlay { position: fixed; top: 0; left: 0; right: 0; padding-top: 12px; display: flex; justify-content: center; z-index: 200; pointer-events: none; opacity: 0; visibility: hidden; transform: translateY(-20px); transition: all 0.2s ease; }
+        .search-overlay.active { opacity: 1; visibility: visible; transform: translateY(0); }
+        .search-window { background: var(--surface); width: 100%; max-width: 600px; border-radius: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.15), 0 0 0 1px var(--border); display: flex; align-items: center; padding: 6px 16px; gap: 12px; pointer-events: auto; }
+        .search-window .material-symbols-outlined { color: var(--text-muted); font-size: 24px; }
+        .search-input { flex: 1; border: none; outline: none; font-size: 15px; color: var(--text-main); font-family: 'Roboto', sans-serif; background: transparent; }
+        .search-input::placeholder { color: var(--text-muted); }
+
+        .hidden { display: none !important; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #dadce0; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #bdc1c6; }
+    </style>
+</head>
+<body>
+
+    <!-- Hidden File Inputs -->
+    <input type="file" id="purchaseUpload" accept=".xlsx, .xls" class="hidden">
+    <input type="file" id="vendorUpload" accept=".csv" class="hidden">
+
+    <!-- Global Floating Action Button for Adding Entries -->
+    <button class="fab hidden" id="mainFab" title="Add Entry" onclick="openDataEntryModal()">
+        <span class="material-symbols-outlined">add</span>
+    </button>
+
+    <!-- Upload Review Modal -->
+    <div class="modal-overlay" id="uploadReviewModal">
+        <div class="modal-card" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>Review Uploaded Purchases</h3>
+                <button class="icon-btn" style="width: 32px; height: 32px;" onclick="closeUploadReviewModal()"><span class="material-symbols-outlined" style="font-size: 20px;">close</span></button>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead style="position: sticky; top: 0; background: var(--surface); box-shadow: 0 1px 0 var(--border); z-index: 10;">
+                        <tr>
+                            <th style="padding: 12px 16px; width: 40px; text-align: center;"><input type="checkbox" id="checkAllUploads" checked onchange="toggleAllUploads(this)" style="transform: scale(1.2); accent-color: var(--primary);"></th>
+                            <th style="padding: 12px 16px;">Supplier</th>
+                            <th style="padding: 12px 16px;">Bill No</th>
+                            <th style="padding: 12px 16px;">Inv Date</th>
+                            <th style="padding: 12px 16px; text-align: right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="uploadReviewBody"></tbody>
+                </table>
+            </div>
+            <div style="padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--background);">
+                <span style="font-size: 13px; color: var(--text-muted);">Unchecked bills will be saved to Pending.</span>
+                <button class="btn btn-primary" onclick="processUploadReview()">Process Bills</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Entry Modal Overlay -->
+    <div class="modal-overlay" id="dataEntryModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Add New Entry</h3>
+                <button class="icon-btn" style="width: 32px; height: 32px;" onclick="closeDataEntryModal()"><span class="material-symbols-outlined" style="font-size: 20px;">close</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-tabs">
+                    <button class="modal-tab-btn active" id="tabBtnSale" onclick="switchModalTab('sale')">Update Sale</button>
+                    <button class="modal-tab-btn" id="tabBtnExp" onclick="switchModalTab('exp')">Add Expense</button>
+                </div>
+                <!-- Update Sale Form -->
+                <div id="modalFormSale" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="filter-group">
+                        <label class="filter-label">Select Date</label>
+                        <input type="date" id="modalSaleDate" class="modern-input">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Actual Sale Amount (₹)</label>
+                        <input type="number" id="modalSaleAmount" class="modern-input" placeholder="e.g. 450000">
+                    </div>
+                    <button class="btn btn-primary" style="margin-top: 8px; width: 100%;" onclick="saveModalSale()">Save Sale</button>
+                </div>
+                <!-- Add Expense Form -->
+                <div id="modalFormExp" class="hidden" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="filter-group">
+                        <label class="filter-label">Select Date</label>
+                        <input type="date" id="modalExpDate" class="modern-input">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Expense Head / Description</label>
+                        <input type="text" id="modalExpHead" class="modern-input" placeholder="e.g. Office Supplies">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Amount (₹)</label>
+                        <input type="number" id="modalExpAmount" class="modern-input" placeholder="0.00">
+                    </div>
+                    <button class="btn btn-primary" style="margin-top: 8px; width: 100%;" onclick="saveModalExpense()">Save Expense</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Bill Modal Overlay -->
+    <div class="modal-overlay" id="editBillModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Edit Purchase</h3>
+                <button class="icon-btn" style="width: 32px; height: 32px;" onclick="closeEditBillModal()"><span class="material-symbols-outlined" style="font-size: 20px;">close</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editBillId">
+                <div class="filter-group"><label class="filter-label">Supplier</label><input type="text" id="editBillSupplier" class="modern-input" readonly style="background:var(--border-light)"></div>
+                <div class="filter-group"><label class="filter-label">Bill No</label><input type="text" id="editBillNo" class="modern-input" readonly style="background:var(--border-light)"></div>
+                <div class="filter-group"><label class="filter-label">Amount (₹)</label><input type="number" id="editBillAmount" class="modern-input"></div>
+                <div class="filter-group"><label class="filter-label">Due Date</label><input type="date" id="editBillDueDate" class="modern-input"></div>
+                <button class="btn btn-primary" style="margin-top: 8px; width: 100%;" onclick="saveEditedBill()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Split Payment Modal Overlay -->
+    <div class="modal-overlay" id="splitBillModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Split Payment</h3>
+                <button class="icon-btn" style="width: 32px; height: 32px;" onclick="closeSplitBillModal()"><span class="material-symbols-outlined" style="font-size: 20px;">close</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="splitOriginalBillId">
+                <div style="padding:12px; background:var(--primary-bg); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:var(--text-main); font-weight:500;">Original Bill Balance:</span>
+                    <span style="font-size:18px; font-weight:700; color:var(--primary);" id="splitOriginalAmount"></span>
+                </div>
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom: 8px;">Enter the amount you wish to extract and schedule to a new date.</p>
+                <div class="filter-group">
+                    <label class="filter-label">Amount to Split Out (₹)</label>
+                    <input type="number" id="splitMoveAmount" class="modern-input" placeholder="0">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">New Due Date for Split Amount</label>
+                    <input type="date" id="splitNewDate" class="modern-input">
+                </div>
+                <button class="btn btn-primary" style="margin-top: 8px; width: 100%;" onclick="confirmSplitBill()">Create Split</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Split / Override Fixed Expense Modal Overlay -->
+    <div class="modal-overlay" id="splitFeModal">
+        <div class="modal-card" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Override Expense (<span id="splitFeMonthLabel"></span>)</h3>
+                <button class="icon-btn" style="width: 32px; height: 32px;" onclick="closeSplitFeModal()"><span class="material-symbols-outlined" style="font-size: 20px;">close</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="splitFeId">
+                <input type="hidden" id="splitFeYear">
+                <input type="hidden" id="splitFeMonth">
+                <p style="font-size:13px; color:var(--text-muted);">Modify the amount or split this fixed expense into multiple days for this specific month only.</p>
+                
+                <div id="splitFeRows" style="display:flex; flex-direction:column; gap:8px;"></div>
+                
+                <button class="btn btn-outline" style="align-self: flex-start;" onclick="addFeSplitRow()">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">add</span> Add Split Date
+                </button>
+                <button class="btn btn-primary" style="margin-top: 16px; width: 100%;" onclick="saveFeOverride()">Save Overrides</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-card" style="max-width: 350px;">
+            <div class="modal-header">
+                <h3 id="pwdModalTitle">Enter Password</h3>
+                <button class="icon-btn" style="width: 32px; height: 32px;" onclick="closePasswordModal()"><span class="material-symbols-outlined" style="font-size: 20px;">close</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="filter-group">
+                    <input type="password" id="pwdInput" class="modern-input" placeholder="Password">
+                </div>
+                <button class="btn btn-primary" style="margin-top: 8px; width: 100%;" onclick="submitPassword()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Header -->
+    <header>
+        <div class="brand">
+            <span class="material-symbols-outlined" style="color: var(--primary); font-size: 28px;">storefront</span>
+            <span class="title-main">METRO FRESH</span> IRITTY
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" title="Search Bills" onclick="openSearch()"><span class="material-symbols-outlined">search</span></button>
+            <button class="icon-btn" id="filterToggleBtn" title="Toggle Filters" onclick="toggleFilters()" style="display: none;"><span class="material-symbols-outlined">filter_list</span></button>
+            <button class="btn btn-primary" onclick="document.getElementById('purchaseUpload').click()"><span class="material-symbols-outlined" style="font-size: 18px;">upload</span> Upload Purchase</button>
+            <button class="icon-btn active-state" id="viewDashboardBtn" title="Dashboard" onclick="switchView('dashboard')" style="margin-left: 8px;"><span class="material-symbols-outlined">dashboard</span></button>
+            <div class="icon-toggle-group">
+                <button class="toggle-btn" id="viewTableBtn" onclick="switchView('table')" title="Table View"><span class="material-symbols-outlined">table_rows</span></button>
+                <button class="toggle-btn" id="viewCalendarBtn" onclick="switchView('calendar')" title="Calendar View"><span class="material-symbols-outlined">calendar_month</span></button>
+            </div>
+            <button class="icon-btn" id="viewSettingsBtn" title="Settings" onclick="switchView('settings')"><span class="material-symbols-outlined">settings</span></button>
+        </div>
+    </header>
+
+    <!-- Floating Search Bar -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-window">
+            <span class="material-symbols-outlined">search</span>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search by Bill No, Party Name, or Amount..." oninput="handleRealTimeSearch(event)" autocomplete="off">
+            <button class="icon-btn" style="width: 32px; height: 32px;" onclick="closeSearch()"><span class="material-symbols-outlined" style="font-size: 20px;">close</span></button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- Advanced Filters for Table -->
+        <div class="filters-container" id="filtersArea" style="display: flex; padding: 20px 24px; border-bottom: 1px solid var(--border); border-radius: 8px 8px 0 0; background: var(--surface);">
+            <div class="filter-group">
+                <label class="filter-label">Vendor</label>
+                <select id="filterVendor" class="modern-input"><option value="All">All Vendors</option></select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Type</label>
+                <select id="filterType" class="modern-input">
+                    <option value="All">All Types</option>
+                    <option value="GST">GST (G-)</option>
+                    <option value="Estimate">Estimate</option>
+                    <option value="Interstate">Interstate (I-)</option>
+                </select>
+            </div>
+            <div class="filter-group" style="flex: 2;">
+                <label class="filter-label">Invoice Date</label>
+                <div class="filter-group-row" style="background: var(--surface);">
+                    <span style="font-size: 12px; color: var(--text-muted);">From</span>
+                    <input type="date" id="filterInvFrom" class="modern-input" style="min-width: 120px;">
+                    <span style="font-size: 12px; color: var(--text-muted); margin-left: 8px;">To</span>
+                    <input type="date" id="filterInvTo" class="modern-input" style="min-width: 120px;">
+                </div>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Due Date</label>
+                <input type="date" id="filterDueExact" class="modern-input">
+            </div>
+            <button class="btn btn-outline" style="margin-bottom: 2px;" onclick="clearFilters()">Clear</button>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="dashboardView" class="view active">
+            <div class="dashboard-layout">
+                <div class="dashboard-left">
+                    <div class="dash-grid">
+                        <button class="dash-btn active" id="dashBtn-sales" onclick="showDashModel('sales')"><div class="dash-icon-wrapper"><span class="material-symbols-outlined">trending_up</span></div><span class="lbl">Sales Analysis</span></button>
+                        <button class="dash-btn" id="dashBtn-purchase" onclick="showDashModel('purchase')"><div class="dash-icon-wrapper"><span class="material-symbols-outlined">shopping_cart</span></div><span class="lbl">Purchase Analysis</span></button>
+                        <button class="dash-btn" id="dashBtn-vs" onclick="showDashModel('vs')"><div class="dash-icon-wrapper"><span class="material-symbols-outlined">compare_arrows</span></div><span class="lbl">Purchase vs Sale</span></button>
+                        <button class="dash-btn" id="dashBtn-expense" onclick="showDashModel('expense')"><div class="dash-icon-wrapper"><span class="material-symbols-outlined">payments</span></div><span class="lbl">Expenses Overview</span></button>
+                        <button class="dash-btn" id="dashBtn-bank" onclick="showDashModel('bank')"><div class="dash-icon-wrapper"><span class="material-symbols-outlined">account_balance</span></div><span class="lbl">Bank Book Balance</span></button>
+                        <button class="dash-btn" id="dashBtn-cheque" onclick="showDashModel('cheque')"><div class="dash-icon-wrapper"><span class="material-symbols-outlined">request_quote</span></div><span class="lbl">Uncleared Cheques</span></button>
+                    </div>
+                </div>
+                <div class="dashboard-right" id="dashRightPanel"></div>
+            </div>
+        </div>
+
+        <!-- Table View -->
+        <div id="tableView" class="view">
+            <div class="table-card">
+                <div id="activeSearchBanner" class="active-search-banner">
+                    <span style="font-size: 14px; color: var(--info); font-weight: 500;">Showing search results for: "<strong id="activeSearchText"></strong>"</span>
+                    <button class="btn btn-outline" style="height: 28px; font-size: 12px;" onclick="clearGlobalSearch()">Clear Search</button>
+                </div>
+                <div class="table-wrapper">
+                    <table id="mainTable">
+                        <thead>
+                            <tr>
+                                <th>Supplier</th><th>Bill No</th><th>Category</th><th>Invoice Date</th><th style="text-align: right;">Invoice Amount</th><th>Due Date</th><th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div id="calendarView" class="view">
+            <div class="calendar-layout">
+                <div class="calendar-main">
+                    <div class="calendar-header">
+                        <div class="calendar-nav">
+                            <button class="icon-btn" onclick="changeMonth(-1)"><span class="material-symbols-outlined">chevron_left</span></button>
+                            <h2 id="calendarMonthYear">Month Year</h2>
+                            <button class="icon-btn" onclick="changeMonth(1)"><span class="material-symbols-outlined">chevron_right</span></button>
+                        </div>
+                        <button class="btn btn-outline" onclick="goToCurrentMonth()">Today</button>
+                    </div>
+                    <div id="calendarGridContainer" class="calendar-grid-container"></div>
+                </div>
+                <div class="calendar-side" id="calendarSidePanel">
+                    <div class="side-header">
+                        <div class="side-header-top">
+                            <h3 id="sideTitle">Select a Date</h3>
+                            <div class="side-filter-group" id="sideFilterGroup" style="display: none;">
+                                <button class="side-filter-btn active" data-cat="All" onclick="setSideFilter('All')">All</button>
+                                <button class="side-filter-btn" data-cat="A" onclick="setSideFilter('A')">A</button>
+                                <button class="side-filter-btn" data-cat="B" onclick="setSideFilter('B')">B</button>
+                                <button class="side-filter-btn" data-cat="C" onclick="setSideFilter('C')">C</button>
+                            </div>
+                        </div>
+                        <div class="side-summary" id="sideSummary" style="display: none;">
+                            <span class="side-summary-text" id="sideCount">0 Item(s)</span>
+                            <span class="side-summary-amount" id="sideTotal">₹ 0</span>
+                        </div>
+                    </div>
+                    <div class="side-content" id="sideContent">
+                        <div class="empty-state">
+                            <span class="material-symbols-outlined">event_note</span>
+                            <p>Click on any date in the calendar<br>to view due bills.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settingsView" class="view">
+            <div class="settings-layout">
+                <div class="settings-header">
+                    <h2>Settings & Master Data</h2>
+                </div>
+                <div class="settings-tabs">
+                    <button class="settings-tab-btn active" onclick="switchSettingsTab('general')">General Config</button>
+                    <button class="settings-tab-btn" onclick="switchSettingsTab('vendor')">Vendor Management</button>
+                    <button class="settings-tab-btn" onclick="switchSettingsTab('expense')">Fixed Expenses</button>
+                    <button class="settings-tab-btn" onclick="switchSettingsTab('purchases')">Manage Purchases</button>
+                    <button class="settings-tab-btn" onclick="switchSettingsTab('pending')">Pending Purchases</button>
+                </div>
+                <div class="settings-body" id="settingsBody">
+                    
+                    <!-- General Config Pane -->
+                    <div id="pane-general" class="settings-pane active">
+                        <div class="settings-section">
+                            <h4 style="margin-bottom: 16px; font-weight: 500;">System Configuration</h4>
+                            <div class="settings-form" style="max-width: 600px;">
+                                <div class="filter-group">
+                                    <label class="filter-label">System Start Date</label>
+                                    <span style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Data (Fixed expenses & default sales) before this date will be ignored. Required for cumulative tracking.</span>
+                                    <input type="date" id="configStartDate" class="modern-input">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Opening Balance (₹)</label>
+                                    <span style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Enter starting cash/bank balance as of the Start Date.</span>
+                                    <input type="number" id="configOpeningBal" class="modern-input" placeholder="e.g. 100000">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Default Daily Sale (₹)</label>
+                                    <span style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Used automatically when actual daily sale is not recorded.</span>
+                                    <input type="number" id="configDefaultSale" class="modern-input" placeholder="e.g. 450000">
+                                </div>
+                                <button class="btn btn-primary" onclick="saveConfig()">Save Settings</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vendor Pane -->
+                    <div id="pane-vendor" class="settings-pane">
+                        <div class="settings-section">
+                            <h4 style="margin-bottom: 12px; font-weight: 500;">Data Management</h4>
+                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                <button class="btn btn-outline" onclick="document.getElementById('vendorUpload').click()">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">upload_file</span> Upload Vendor CSV
+                                </button>
+                                <button class="btn btn-outline" style="color: var(--warning); border-color: var(--warning);" onclick="clearVendorData()">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">person_remove</span> Clear Vendors
+                                </button>
+                                <button class="btn btn-outline" style="color: var(--warning); border-color: var(--warning);" onclick="clearPurchaseData()">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">receipt_long</span> Clear Purchases
+                                </button>
+                                <button class="btn" style="background: var(--error-bg); color: var(--error);" onclick="clearAllData()">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">delete_forever</span> Clear All Data
+                                </button>
+                            </div>
+                        </div>
+                        <div class="settings-section">
+                            <h4 style="margin-bottom: 16px; font-weight: 500;">Manage Vendors</h4>
+                            <div class="settings-form" id="vendorEditForm">
+                                <div class="filter-group"><label class="filter-label">Vendor Name</label><input type="text" id="vName" class="modern-input"></div>
+                                <div class="filter-group"><label class="filter-label">Credit Days</label><input type="number" id="vDays" class="modern-input" placeholder="0"></div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Category</label>
+                                    <select id="vCat" class="modern-input"><option value="A">A</option><option value="B">B</option><option value="C">C</option></select>
+                                </div>
+                                <button class="btn btn-primary" onclick="addOrUpdateVendor()">Save</button>
+                            </div>
+                            <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface);">
+                                <table style="min-width: 100%;">
+                                    <thead><tr><th>Party</th><th>Credit Days</th><th>Category</th><th style="text-align: right;">Action</th></tr></thead>
+                                    <tbody id="vendorTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Expenses Pane -->
+                    <div id="pane-expense" class="settings-pane">
+                        <div class="settings-section">
+                            <h4 style="margin-bottom: 16px; font-weight: 500;">Monthly Fixed Expenses</h4>
+                            <div class="settings-form" id="expenseEditForm">
+                                <div class="filter-group"><label class="filter-label">Expense Name</label><input type="text" id="eName" class="modern-input"></div>
+                                <div class="filter-group"><label class="filter-label">Default Day (1-31)</label><input type="number" id="eDay" class="modern-input" placeholder="5" min="1" max="31"></div>
+                                <div class="filter-group">
+                                    <label class="filter-label">Category</label>
+                                    <select id="eCat" class="modern-input"><option value="A">A</option><option value="B">B</option><option value="C">C</option></select>
+                                </div>
+                                <div class="filter-group"><label class="filter-label">Amount (₹)</label><input type="number" id="eAmount" class="modern-input" placeholder="0"></div>
+                                <button class="btn btn-primary" onclick="addFixedExpense()">Add Expense</button>
+                            </div>
+                            <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface);">
+                                <table style="min-width: 100%;">
+                                    <thead><tr><th>Expense Name</th><th>Default Day</th><th>Category</th><th>Amount</th><th style="text-align: right;">Action</th></tr></thead>
+                                    <tbody id="expenseTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manage Purchases Pane -->
+                    <div id="pane-purchases" class="settings-pane">
+                        <div class="settings-section">
+                            <h4 style="margin-bottom: 16px; font-weight: 500;">Edit or Delete Purchases</h4>
+                            <div class="filter-group-row" style="margin-bottom: 16px; width: fit-content;">
+                                <span class="material-symbols-outlined" style="color:var(--text-muted)">search</span>
+                                <input type="text" id="purchaseSettingsSearch" class="modern-input" placeholder="Search Supplier or Bill No" oninput="renderManagePurchases()" style="border:none; width: 300px; padding:0;">
+                            </div>
+                            <div style="border: 1px solid var(--border); border-radius: 8px; max-height: 400px; display: flex; flex-direction: column;">
+                                <div style="overflow-y: auto; flex: 1;">
+                                    <table style="width: 100%; border-collapse: collapse;">
+                                        <thead>
+                                            <tr>
+                                                <th style="position: sticky; top: 0; background: var(--surface); z-index: 10;">Supplier</th>
+                                                <th style="position: sticky; top: 0; background: var(--surface); z-index: 10;">Bill No</th>
+                                                <th style="position: sticky; top: 0; background: var(--surface); z-index: 10;">Inv Amount</th>
+                                                <th style="position: sticky; top: 0; background: var(--surface); z-index: 10;">Due Date</th>
+                                                <th style="position: sticky; top: 0; background: var(--surface); z-index: 10; text-align: right;">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="managePurchasesBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Purchases Pane -->
+                    <div id="pane-pending" class="settings-pane">
+                        <div class="settings-section">
+                            <h4 style="margin-bottom: 16px; font-weight: 500;">Pending Purchases</h4>
+                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Confirm these bills by selecting the actual purchase date and verifying the amount.</p>
+                            <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); max-height: 400px; overflow-y: auto;">
+                                <table style="min-width: 100%; border-collapse: collapse;">
+                                    <thead style="position: sticky; top: 0; background: var(--surface); z-index: 10; box-shadow: 0 1px 0 var(--border);">
+                                        <tr>
+                                            <th style="padding: 12px 16px;">Supplier</th>
+                                            <th style="padding: 12px 16px;">Bill No</th>
+                                            <th style="padding: 12px 16px;">Parsed Date</th>
+                                            <th style="padding: 12px 16px;">Actual Date</th>
+                                            <th style="padding: 12px 16px;">Amount (₹)</th>
+                                            <th style="padding: 12px 16px; text-align: right;">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pendingPurchasesBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+    // 1. Import Firebase Core and Firestore
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+        getFirestore, doc, setDoc, getDoc 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCal_1VTZQCG1aWYXo0XZ4pcsDmssNKfmc",
+  authDomain: "metro-finance-d7f1f.firebaseapp.com",
+  projectId: "metro-finance-d7f1f",
+  storageBucket: "metro-finance-d7f1f.firebasestorage.app",
+  messagingSenderId: "1074396233110",
+  appId: "1:1074396233110:web:5e12edac264c81d4a071b7"
+};
+
+    // 3. Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+        let appConfig = { startDate: '', defaultSale: 450000, openingBalance: 0 };
+let feOverrides = {};
+let vendors = {};
+let bills = [];
+let fixedExpenses = [];
+let salesData = {};
+let dailyExpenses = [];
+let pendingBills = [];
+        
+        let currentCalDate = new Date();
+        let selectedCalDate = null;
+        let currentView = 'dashboard'; 
+        let currentDashModel = 'sales';
+        let sideFilterCat = 'All'; 
+        let isFilterVisible = false;
+        let globalSearchQuery = '';
+        let tempUploadedBills = [];
+        let activeChart = null; 
+        let passwordCallback = null;
+
+        const dashModels = {
+            'sales': { title: 'Sales Analysis', icon: 'trending_up', fn: renderSalesDash },
+            'purchase': { title: 'Purchase Analysis', icon: 'shopping_cart', fn: renderPurchaseDash },
+            'vs': { title: 'Purchase vs Sale', icon: 'compare_arrows', fn: renderVsDash },
+            'expense': { title: 'Expenses Overview', icon: 'payments', fn: renderExpenseDash },
+            'bank': { title: 'Bank Book Balance', icon: 'account_balance', fn: renderBankDash },
+            'cheque': { title: 'Uncleared Cheques', icon: 'request_quote', fn: renderChequeDash }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            document.getElementById('vendorUpload').addEventListener('change', handleVendorUpload);
+            document.getElementById('purchaseUpload').addEventListener('change', handlePurchaseUpload);
+            ['filterVendor', 'filterType', 'filterInvFrom', 'filterInvTo', 'filterDueExact'].forEach(id => document.getElementById(id).addEventListener('change', renderTable));
+            
+            document.getElementById('pwdInput').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') submitPassword();
+            });
+        });
+
+        function initApp() { 
+            // Load Config UI
+            document.getElementById('configStartDate').value = appConfig.startDate || '';
+            document.getElementById('configDefaultSale').value = appConfig.defaultSale || 0;
+            document.getElementById('configOpeningBal').value = appConfig.openingBalance || 0;
+
+            recalculateDueDates();
+            showDashModel('sales'); 
+            populateVendorFilter(); 
+            applyFilterVisibility();
+            renderTable(); 
+            renderCalendar(); 
+            renderVendorSettings(); 
+            renderExpenseSettings();
+            renderManagePurchases();
+            renderPendingPurchases();
+        }
+
+        // Firestore Save Functions
+async function saveConfig() {
+    appConfig.startDate = document.getElementById('configStartDate').value;
+    appConfig.defaultSale = parseFloat(document.getElementById('configDefaultSale').value) || 0;
+    appConfig.openingBalance = parseFloat(document.getElementById('configOpeningBal').value) || 0;
+    await setDoc(doc(db, 'metroFreshData', 'config'), appConfig);
+    alert("Settings Saved!");
+    initApp();
+}
+
+async function saveVendors() { await setDoc(doc(db, 'metroFreshData', 'vendors'), vendors); }
+async function saveBills() { await setDoc(doc(db, 'metroFreshData', 'bills'), { list: bills }); }
+async function saveExpenses() { await setDoc(doc(db, 'metroFreshData', 'expenses'), { list: fixedExpenses }); }
+async function saveDailyExpenses() { await setDoc(doc(db, 'metroFreshData', 'daily_exp'), { list: dailyExpenses }); }
+async function savePendingBills() { await setDoc(doc(db, 'metroFreshData', 'pending_bills'), { list: pendingBills }); }
+
+        
+
+        // Date Parsers & Helpers
+        function parseDate(dateStr) {
+            if (!dateStr) return new Date();
+            let d = dateStr.trim().split(' ')[0]; 
+            let parts = d.split(/[-/]/);
+            if (parts.length === 3) {
+                if (parts[0].length === 4) return new Date(parts[0], parts[1] - 1, parts[2]); 
+                else return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            const fallback = new Date(dateStr);
+            if (!isNaN(fallback.getTime())) return fallback;
+            return new Date();
+        }
+        function formatDateToDDMMYYYY(date) { const d = String(date.getDate()).padStart(2, '0'); const m = String(date.getMonth() + 1).padStart(2, '0'); const y = date.getFullYear(); return `${d}/${m}/${y}`; }
+        function formatDateToYYYYMMDD(date) { const d = String(date.getDate()).padStart(2, '0'); const m = String(date.getMonth() + 1).padStart(2, '0'); const y = date.getFullYear(); return `${y}-${m}-${d}`; }
+        function formatCurrency(amount) { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount); }
+        function clearTime(dateObj) { const d = new Date(dateObj); d.setHours(0,0,0,0); return d.getTime(); }
+
+        function getBillType(billNo) {
+            if(billNo.startsWith('G-')) return { type: 'GST', class: 'type-gst' };
+            if(billNo.startsWith('Estimate-')) return { type: 'Estimate', class: 'type-est' };
+            if(billNo.startsWith('I-')) return { type: 'Interstate', class: 'type-inter' };
+            return { type: 'Other', class: 'type-other' };
+        }
+        function getCategoryClass(cat) {
+            if (!cat) return 'cat-default'; const c = cat.trim().toUpperCase();
+            if (c === 'A') return 'cat-a'; if (c === 'B') return 'cat-b'; if (c === 'C') return 'cat-c';
+            return 'cat-default';
+        }
+
+        // Retrieve Fixed Expenses applied to a Specific Day (handles overrides & start date)
+        function getFixedExpensesForDate(year, month, day) {
+            let res = [];
+            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            if (appConfig.startDate && dateStr < appConfig.startDate) return res;
+
+            const daysInM = new Date(year, month + 1, 0).getDate();
+
+            fixedExpenses.forEach(fe => {
+                let overrideKey = `${fe.id}_${year}_${month}`;
+                if (feOverrides[overrideKey]) {
+                    feOverrides[overrideKey].splits.forEach(s => {
+                        if (s.dateStr === dateStr) {
+                            res.push({ ...fe, amount: s.amount, isFixedExpense: true, dateStr, origId: fe.id });
+                        }
+                    });
+                } else {
+                    const actualDay = Math.min(fe.day, daysInM);
+                    if (actualDay === day) res.push({ ...fe, isFixedExpense: true, dateStr, origId: fe.id });
+                }
+            });
+            return res;
+        }
+
+        // --- Password Modal Logic ---
+        function showPasswordModal(actionName, requiredPwd, successCb) {
+            document.getElementById('pwdModalTitle').textContent = actionName;
+            document.getElementById('pwdInput').value = '';
+            document.getElementById('passwordModal').classList.add('active');
+            setTimeout(() => document.getElementById('pwdInput').focus(), 100);
+            
+            passwordCallback = () => {
+                const val = document.getElementById('pwdInput').value;
+                if (val === requiredPwd) {
+                    closePasswordModal();
+                    successCb();
+                } else {
+                    alert('Incorrect password!');
+                }
+            };
+        }
+        
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+            passwordCallback = null;
+        }
+        
+        function submitPassword() {
+            if (passwordCallback) passwordCallback();
+        }
+
+        // --- Search and Filters ---
+        function openSearch() { document.getElementById('searchOverlay').classList.add('active'); document.getElementById('searchInput').focus(); document.getElementById('searchInput').value = globalSearchQuery; }
+        function closeSearch() { document.getElementById('searchOverlay').classList.remove('active'); }
+        function handleRealTimeSearch(e) { globalSearchQuery = e.target.value.trim(); if (currentView !== 'table' && globalSearchQuery.length > 0) switchView('table'); renderTable(); }
+        function clearGlobalSearch() { globalSearchQuery = ''; document.getElementById('searchInput').value = ''; renderTable(); closeSearch(); }
+        function toggleFilters() { isFilterVisible = !isFilterVisible; applyFilterVisibility(); }
+        function applyFilterVisibility() {
+            const filtersArea = document.getElementById('filtersArea'); const filterBtn = document.getElementById('filterToggleBtn');
+            if (currentView === 'table') { filterBtn.style.display = 'flex'; if (isFilterVisible) { filtersArea.style.display = 'flex'; filterBtn.classList.add('active-state'); } else { filtersArea.style.display = 'none'; filterBtn.classList.remove('active-state'); } }
+            else { filterBtn.style.display = 'none'; filtersArea.style.display = 'none'; }
+        }
+        function clearFilters() { document.getElementById('filterVendor').value = 'All'; document.getElementById('filterType').value = 'All'; document.getElementById('filterInvFrom').value = ''; document.getElementById('filterInvTo').value = ''; document.getElementById('filterDueExact').value = ''; renderTable(); }
+
+        // --- Data Entry Modal Logic ---
+        function updateFabVisibility() {
+            const fab = document.getElementById('mainFab');
+            if (currentView === 'dashboard' && (currentDashModel === 'sales' || currentDashModel === 'expense')) fab.classList.remove('hidden');
+            else fab.classList.add('hidden');
+        }
+
+        function openDataEntryModal() {
+            document.getElementById('dataEntryModal').classList.add('active');
+            switchModalTab(currentDashModel === 'expense' ? 'exp' : 'sale');
+            const todayStr = formatDateToYYYYMMDD(new Date());
+            document.getElementById('modalSaleDate').value = todayStr;
+            document.getElementById('modalExpDate').value = todayStr;
+            document.getElementById('modalSaleAmount').value = (salesData[todayStr] && salesData[todayStr].actual !== null) ? salesData[todayStr].actual : '';
+            
+            document.getElementById('modalSaleDate').addEventListener('change', (e) => {
+                const dateStr = e.target.value;
+                document.getElementById('modalSaleAmount').value = (salesData[dateStr] && salesData[dateStr].actual !== null) ? salesData[dateStr].actual : '';
+            }, {once: true}); 
+        }
+
+        function closeDataEntryModal() { document.getElementById('dataEntryModal').classList.remove('active'); document.getElementById('modalExpHead').value = ''; document.getElementById('modalExpAmount').value = ''; }
+        function switchModalTab(tab) {
+            document.getElementById('tabBtnSale').classList.toggle('active', tab === 'sale'); document.getElementById('tabBtnExp').classList.toggle('active', tab === 'exp');
+            document.getElementById('modalFormSale').classList.toggle('hidden', tab !== 'sale'); document.getElementById('modalFormExp').classList.toggle('hidden', tab !== 'exp');
+        }
+
+        function saveModalSale() {
+            const dateStr = document.getElementById('modalSaleDate').value; const amtStr = document.getElementById('modalSaleAmount').value;
+            if(!dateStr) return;
+            if(!salesData[dateStr]) salesData[dateStr] = { predicted: appConfig.defaultSale, actual: null };
+            salesData[dateStr].actual = amtStr.trim() === '' ? null : parseFloat(amtStr);
+            setDoc(doc(db, 'metroFreshData', 'sales'), salesData);
+            closeDataEntryModal();
+            if(currentView === 'calendar') renderCalendar();
+            if(currentView === 'dashboard') showDashModel('sales'); 
+        }
+
+        function saveModalExpense() {
+            const dateStr = document.getElementById('modalExpDate').value; const head = document.getElementById('modalExpHead').value.trim(); const amount = parseFloat(document.getElementById('modalExpAmount').value);
+            if(!dateStr || !head || !amount) { alert('Please fill all expense details'); return; }
+            dailyExpenses.push({ id: Date.now().toString(), dateStr: dateStr, head: head, amount: amount }); saveDailyExpenses();
+            closeDataEntryModal();
+            if(currentView === 'calendar') renderCalendar();
+            if(currentView === 'dashboard') showDashModel('expense');
+        }
+
+        // --- Dashboard Models ---
+        function getPast7DaysDates() { let dates = []; for (let i = 6; i >= 0; i--) { let d = new Date(); d.setDate(d.getDate() - i); dates.push(formatDateToYYYYMMDD(d)); } return dates; }
+        
+        function showDashModel(key) {
+            currentDashModel = key; updateFabVisibility();
+            document.querySelectorAll('.dash-btn').forEach(btn => btn.classList.remove('active')); document.getElementById('dashBtn-' + key).classList.add('active');
+            const model = dashModels[key]; const rightPanel = document.getElementById('dashRightPanel');
+            rightPanel.innerHTML = `<div class="dash-model-header"><div style="display: flex; align-items: center; gap: 12px;"><div style="background: var(--primary-bg); color: var(--primary); padding: 8px; border-radius: 8px; display:flex; align-items:center;"><span class="material-symbols-outlined" style="font-size: 28px;">${model.icon}</span></div><h3>${model.title}</h3></div></div><div id="dashModelContent" style="flex:1; display:flex; flex-direction:column;"></div>`;
+            model.fn(document.getElementById('dashModelContent'));
+        }
+
+        function renderSalesDash(container) {
+            const dates = getPast7DaysDates(); const labels = dates.map(d => d.substring(5));
+            const data = dates.map(d => {
+                if(salesData[d] && salesData[d].actual !== null) return salesData[d].actual;
+                if(appConfig.startDate && d < appConfig.startDate) return 0;
+                return appConfig.defaultSale;
+            });
+
+            container.innerHTML = `<div class="chart-container"><canvas id="salesChart"></canvas></div>`;
+            if(activeChart) activeChart.destroy();
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            activeChart = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Sales (₹)', data: data, borderColor: '#1a73e8', backgroundColor: 'rgba(26,115,232,0.1)', fill: true, tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false } });
+        }
+
+        function renderPurchaseDash(container) {
+            const dates = getPast7DaysDates(); const labels = dates.map(d => d.substring(5)); let pData = [0,0,0,0,0,0,0];
+            bills.forEach(b => { const bDateStr = formatDateToYYYYMMDD(new Date(b.billDate)); const idx = dates.indexOf(bDateStr); if(idx !== -1) pData[idx] += b.amount; });
+            container.innerHTML = `<div class="chart-container"><canvas id="purchaseChart"></canvas></div>`;
+            if(activeChart) activeChart.destroy();
+            const ctx = document.getElementById('purchaseChart').getContext('2d');
+            activeChart = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Purchases Invoiced (₹)', data: pData, borderColor: '#ea8600', backgroundColor: 'rgba(234,134,0,0.1)', fill: true, tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false } });
+        }
+
+        function renderVsDash(container) {
+            const dates = getPast7DaysDates(); const labels = dates.map(d => d.substring(5));
+            const sData = dates.map(d => {
+                if(salesData[d] && salesData[d].actual !== null) return salesData[d].actual;
+                if(appConfig.startDate && d < appConfig.startDate) return 0;
+                return appConfig.defaultSale;
+            });
+            let pData = [0,0,0,0,0,0,0];
+            bills.forEach(b => { const bDateStr = formatDateToYYYYMMDD(new Date(b.billDate)); const idx = dates.indexOf(bDateStr); if(idx !== -1) pData[idx] += b.amount; });
+
+            container.innerHTML = `<div class="chart-container"><canvas id="vsChart"></canvas></div>`;
+            if(activeChart) activeChart.destroy();
+            const ctx = document.getElementById('vsChart').getContext('2d');
+            activeChart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Sales', data: sData, backgroundColor: '#1a73e8' }, { label: 'Purchases Invoiced', data: pData, backgroundColor: '#ea8600' }] }, options: { responsive: true, maintainAspectRatio: false } });
+        }
+
+        function renderExpenseDash(container) {
+            let html = `<p style="font-size:14px; color:var(--text-muted); margin-bottom: 16px;">Recent daily expenses recorded via the '+' button.</p><div style="border: 1px solid var(--border); border-radius: 8px; max-height: 400px; display: flex; flex-direction: column;"><div style="overflow-y: auto; flex: 1;"><table style="width: 100%; border-collapse: collapse;"><thead><tr style="background:var(--background); text-align:left;"><th style="padding: 12px; border-bottom:1px solid var(--border); position: sticky; top: 0; background: var(--background); z-index: 1;">Date</th><th style="padding: 12px; border-bottom:1px solid var(--border); position: sticky; top: 0; background: var(--background); z-index: 1;">Head</th><th style="padding: 12px; border-bottom:1px solid var(--border); text-align:right; position: sticky; top: 0; background: var(--background); z-index: 1;">Amount</th></tr></thead><tbody>`;
+            const sortedExp = [...dailyExpenses].sort((a,b) => new Date(b.dateStr) - new Date(a.dateStr)).slice(0, 10);
+            if(sortedExp.length === 0) html += `<tr><td colspan="3" style="padding: 24px; text-align:center; color:var(--text-muted);">No recent expenses</td></tr>`;
+            else sortedExp.forEach(e => { html += `<tr><td style="padding: 12px; border-bottom:1px solid var(--border);">${new Date(e.dateStr).toLocaleDateString('en-GB')}</td><td style="padding: 12px; border-bottom:1px solid var(--border);">${e.head}</td><td style="padding: 12px; border-bottom:1px solid var(--border); text-align:right; font-weight:500;">${formatCurrency(e.amount)}</td></tr>`; });
+            html += `</tbody></table></div></div>`; container.innerHTML = html;
+        }
+
+        function renderBankDash(container) {
+            const todayStr = formatDateToYYYYMMDD(new Date());
+            container.innerHTML = `
+                <p style="font-size:14px; color:var(--text-muted); margin-bottom: 24px;">Calculates cumulative net liquidity tracked from the System Start Date. <br><b>Only Cleared Bills/Cheques are deducted.</b></p>
+                <div style="display:flex; gap:16px; align-items:flex-end; background:var(--background); padding:16px; border-radius:8px; border:1px solid var(--border);">
+                    <div class="filter-group" style="flex:1;">
+                        <label class="filter-label">Target End Date</label>
+                        <input type="date" id="bankCheckDate" class="modern-input" value="${todayStr}">
+                    </div>
+                    <button class="btn btn-primary" onclick="calculateBankBalance()">Calculate Cumulative Balance</button>
+                </div>
+                <div id="bankResult" style="margin-top: 24px; display:none; flex-direction:column; gap:16px;">
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border-light);"><span style="color:var(--text-muted);">Opening Balance:</span><span style="font-weight:500; color:var(--text-main);" id="resOpening"></span></div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border-light);"><span style="color:var(--text-muted);">Total Cumulative Sales:</span><span style="font-weight:500; color:var(--success);" id="resSales"></span></div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border-light);"><span style="color:var(--text-muted);">Total Cumulative Payments/Exp:</span><span style="font-weight:500; color:var(--error);" id="resPayments"></span></div>
+                    <div style="display:flex; justify-content:space-between; padding:16px; background:var(--primary-bg); border-radius:8px;"><span style="font-weight:500; color:var(--text-main);">Net Balance:</span><span style="font-weight:700; font-size: 20px;" id="resBal"></span></div>
+                </div>
+            `;
+            setTimeout(calculateBankBalance, 50);
+        }
+
+        function calculateBankBalance() {
+            const endDateStr = document.getElementById('bankCheckDate').value; if(!endDateStr) return;
+            const resContainer = document.getElementById('bankResult');
+            
+            if(!appConfig.startDate) {
+                resContainer.style.display = 'flex';
+                resContainer.innerHTML = `<div style="color:var(--error); padding: 16px; background:var(--error-bg); border-radius:8px; text-align:center;">Please configure your <b>System Start Date</b> in Settings -> General Config to view cumulative balance.</div>`;
+                return;
+            }
+
+            let startStr = appConfig.startDate;
+            if(endDateStr < startStr) startStr = endDateStr; 
+
+            let currDate = parseDate(startStr);
+            let targetDate = parseDate(endDateStr);
+            currDate.setHours(0,0,0,0); targetDate.setHours(0,0,0,0);
+            
+            let cumSales = 0; let cumPayments = 0;
+
+            while(currDate <= targetDate) {
+                let y = currDate.getFullYear(); let m = currDate.getMonth(); let d = currDate.getDate();
+                let dStr = formatDateToYYYYMMDD(currDate);
+                let dayTime = currDate.getTime();
+
+                // Sum Sales
+                if (salesData[dStr] && salesData[dStr].actual !== null) cumSales += salesData[dStr].actual;
+                else if (appConfig.defaultSale && dStr >= appConfig.startDate) cumSales += appConfig.defaultSale;
+
+                // Sum Payments (Bills) - Only if Cleared
+                bills.forEach(b => { if (clearTime(b.dueDate) === dayTime && b.isCleared) cumPayments += b.amount; });
+
+                // Sum Daily Expenses
+                dailyExpenses.forEach(e => { if (e.dateStr === dStr) cumPayments += e.amount; });
+
+                // Sum Fixed Expenses
+                let feForDay = getFixedExpensesForDate(y, m, d);
+                feForDay.forEach(fe => cumPayments += fe.amount);
+
+                currDate.setDate(currDate.getDate() + 1);
+            }
+
+            resContainer.innerHTML = `
+                <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border-light);"><span style="color:var(--text-muted);">Opening Balance:</span><span style="font-weight:500; color:var(--text-main);" id="resOpening"></span></div>
+                <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border-light);"><span style="color:var(--text-muted);">Total Cumulative Sales:</span><span style="font-weight:500; color:var(--success);" id="resSales"></span></div>
+                <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border-light);"><span style="color:var(--text-muted);">Total Cumulative Payments/Exp:</span><span style="font-weight:500; color:var(--error);" id="resPayments"></span></div>
+                <div style="display:flex; justify-content:space-between; padding:16px; background:var(--primary-bg); border-radius:8px;"><span style="font-weight:500; color:var(--text-main);">Net Balance:</span><span style="font-weight:700; font-size: 20px;" id="resBal"></span></div>
+            `;
+            document.getElementById('resOpening').textContent = formatCurrency(appConfig.openingBalance);
+            document.getElementById('resSales').textContent = formatCurrency(cumSales);
+            document.getElementById('resPayments').textContent = formatCurrency(cumPayments);
+            const netBalance = appConfig.openingBalance + cumSales - cumPayments;
+            const resBalEl = document.getElementById('resBal');
+            resBalEl.textContent = formatCurrency(netBalance);
+            resBalEl.style.color = netBalance < 0 ? 'var(--error)' : 'var(--primary)';
+            resContainer.style.display = 'flex';
+        }
+
+        function renderChequeDash(container) {
+            const todayTime = clearTime(new Date());
+            const uncleared = bills.filter(b => !b.isCleared && clearTime(b.dueDate) <= todayTime).sort((a,b) => a.dueDate - b.dueDate);
+            const totalUncleared = uncleared.reduce((sum, b) => sum + b.amount, 0);
+
+            let html = `<p style="font-size:14px; color:var(--text-muted); margin-bottom: 8px;">List of all uncleared bills/cheques up to today.</p>`;
+            
+            if(uncleared.length === 0) { html += `<div class="empty-state" style="padding: 20px;"><span class="material-symbols-outlined">task_alt</span><p>No pending uncleared cheques!</p></div>`; } 
+            else {
+                html += `<div style="background:var(--error-bg); padding:12px; border-radius:8px; border:1px solid #f5c6cb; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <span style="font-weight:500; color:var(--text-main);">Total Uncleared Amount:</span>
+                            <span style="font-weight:700; font-size: 18px; color:var(--error);">${formatCurrency(totalUncleared)}</span>
+                         </div>`;
+                html += `<div style="border: 1px solid var(--border); border-radius: 8px; max-height: 400px; display: flex; flex-direction: column;"><div style="overflow-y: auto; flex: 1;"><table style="width: 100%; border-collapse: collapse;"><thead><tr style="background:var(--background); text-align:left;"><th style="padding: 12px; border-bottom:1px solid var(--border); position: sticky; top: 0; background: var(--background); z-index: 1;">Supplier</th><th style="padding: 12px; border-bottom:1px solid var(--border); position: sticky; top: 0; background: var(--background); z-index: 1;">Bill No</th><th style="padding: 12px; border-bottom:1px solid var(--border); position: sticky; top: 0; background: var(--background); z-index: 1;">Due Date</th><th style="padding: 12px; border-bottom:1px solid var(--border); text-align:right; position: sticky; top: 0; background: var(--background); z-index: 1;">Amount</th></tr></thead><tbody>`;
+                uncleared.forEach(b => { html += `<tr><td style="padding: 12px; border-bottom:1px solid var(--border-light); font-weight:500;">${b.supplier}</td><td style="padding: 12px; border-bottom:1px solid var(--border-light);">${b.billNo}</td><td style="padding: 12px; border-bottom:1px solid var(--border-light); color:var(--error);">${b.dueDateStr}</td><td style="padding: 12px; border-bottom:1px solid var(--border-light); text-align:right; font-weight:500;">${formatCurrency(b.amount)}</td></tr>`; });
+                html += `</tbody></table></div></div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        // --- Other Views ---
+        function switchView(view) {
+            currentView = view; updateFabVisibility();
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById(view + 'View').classList.add('active');
+            document.getElementById('viewDashboardBtn').classList.remove('active-state'); document.getElementById('viewTableBtn').classList.remove('active'); document.getElementById('viewCalendarBtn').classList.remove('active'); document.getElementById('viewSettingsBtn').classList.remove('active-state');
+            
+            if(view === 'dashboard') { document.getElementById('viewDashboardBtn').classList.add('active-state'); showDashModel(currentDashModel); }
+            else if(view === 'table') { document.getElementById('viewTableBtn').classList.add('active'); renderTable(); }
+            else if(view === 'calendar') { document.getElementById('viewCalendarBtn').classList.add('active'); renderCalendar(); }
+            else if(view === 'settings') { document.getElementById('viewSettingsBtn').classList.add('active-state'); renderManagePurchases(); renderPendingPurchases(); }
+            applyFilterVisibility();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody'); tbody.innerHTML = '';
+            const fVendor = document.getElementById('filterVendor').value; const fType = document.getElementById('filterType').value;
+            const fInvFrom = document.getElementById('filterInvFrom').value ? clearTime(document.getElementById('filterInvFrom').value) : 0; const fInvTo = document.getElementById('filterInvTo').value ? clearTime(document.getElementById('filterInvTo').value) : Infinity;
+            const fDueExactStr = document.getElementById('filterDueExact').value; const fDueExact = fDueExactStr ? clearTime(fDueExactStr) : null;
+            const searchBanner = document.getElementById('activeSearchBanner');
+            
+            if (globalSearchQuery) { document.getElementById('activeSearchText').textContent = globalSearchQuery; searchBanner.classList.add('active'); } 
+            else { searchBanner.classList.remove('active'); }
+
+            const sortedBills = [...bills].sort((a, b) => a.dueDate - b.dueDate);
+
+            sortedBills.forEach(b => {
+                const typeInfo = getBillType(b.billNo);
+                if(fVendor !== 'All' && b.supplier !== fVendor) return; if(fType !== 'All' && typeInfo.type !== fType) return; if(fDueExact !== null && clearTime(b.dueDate) !== fDueExact) return;
+                const billTime = clearTime(b.billDate); if(billTime < fInvFrom || billTime > fInvTo) return;
+
+                if (globalSearchQuery) { const q = globalSearchQuery.toLowerCase(); if (!b.supplier.toLowerCase().includes(q) && !b.billNo.toLowerCase().includes(q) && !b.amount.toString().includes(q)) return; }
+
+                const catClass = getCategoryClass(b.category);
+                
+                let statChip = '';
+                if (b.isCleared) {
+                    statChip = `<span class="chip" style="background:var(--success-bg); color:var(--success);">Cleared</span>`;
+                } else if (b.isIssued) {
+                    statChip = `<span class="chip" style="background:var(--error-bg); color:var(--error);">Issued</span>`;
+                } else {
+                    statChip = `<span class="chip" style="background:var(--warning-bg); color:var(--warning);">Pending</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td style="font-weight: 500;">${b.supplier}</td><td><span class="chip ${typeInfo.class}">${b.billNo}</span></td><td><span class="chip ${catClass}" style="min-width: 24px;">${b.category || '-'}</span></td><td>${b.dateStr}</td><td style="font-weight: 500; text-align:right;">${formatCurrency(b.amount)}</td><td style="${b.isManuallyMoved ? 'color: var(--warning); font-weight:500;' : ''}">${b.dueDateStr} ${b.isManuallyMoved ? '<span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; margin-left:4px;" title="Manually Moved/Split">edit</span>' : ''}</td><td>${statChip}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- Calendar Logic ---
+        function changeMonth(delta) { currentCalDate.setMonth(currentCalDate.getMonth() + delta); renderCalendar(); }
+        function goToCurrentMonth() { currentCalDate = new Date(); selectedCalDate = new Date(); renderCalendar(); }
+
+        function renderCalendar() {
+    const year = currentCalDate.getFullYear();
+    const month = currentCalDate.getMonth();
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    
+    document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    // Grid calculation
+    const totalCellsNeeded = firstDay + daysInMonth;
+    const weeks = Math.ceil(totalCellsNeeded / 7);
+    
+    const calContainer = document.getElementById('calendarGridContainer');
+    calContainer.style.setProperty('--week-count', weeks);
+    calContainer.innerHTML = '';
+
+    // 1. Headers
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    dayNames.forEach(d => {
+        const div = document.createElement('div');
+        div.className = 'cal-day-header';
+        div.textContent = d;
+        calContainer.appendChild(div);
+    });
+
+    // Data Aggregation
+    const itemsByDay = {};
+    bills.forEach(b => {
+        const d = new Date(b.dueDate);
+        if(d.getFullYear() === year && d.getMonth() === month) {
+            const day = d.getDate();
+            if(!itemsByDay[day]) itemsByDay[day] = { total: 0, clearedTotal: 0 };
+            itemsByDay[day].total += b.amount; 
+            if(b.isCleared) itemsByDay[day].clearedTotal += b.amount;
+        }
+    });
+
+    dailyExpenses.forEach(e => {
+        const d = new Date(e.dateStr);
+        if(d.getFullYear() === year && d.getMonth() === month) {
+            const day = d.getDate();
+            if(!itemsByDay[day]) itemsByDay[day] = { total: 0, clearedTotal: 0 };
+            itemsByDay[day].total += e.amount; 
+            itemsByDay[day].clearedTotal += e.amount;
+        }
+    });
+
+    // 2. Padding Start
+    for(let i = 0; i < firstDay; i++) {
+        const div = document.createElement('div');
+        div.className = 'cal-cell empty';
+        calContainer.appendChild(div);
+    }
+
+    // 3. Days
+    const today = new Date();
+    for(let i = 1; i <= daysInMonth; i++) {
+        const feDayItems = getFixedExpensesForDate(year, month, i);
+        if(feDayItems.length > 0) {
+            if(!itemsByDay[i]) itemsByDay[i] = { total: 0, clearedTotal: 0 };
+            feDayItems.forEach(fe => {
+                itemsByDay[i].total += fe.amount;
+                itemsByDay[i].clearedTotal += fe.amount;
+            });
+        }
+
+        const div = document.createElement('div');
+        div.className = 'cal-cell';
+        if(year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) div.classList.add('today');
+        if(selectedCalDate && year === selectedCalDate.getFullYear() && month === selectedCalDate.getMonth() && i === selectedCalDate.getDate()) div.classList.add('selected');
+
+        const loopDateStr = `${year}-${String(month+1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        let saleActual = (salesData[loopDateStr] && salesData[loopDateStr].actual !== null) ? salesData[loopDateStr].actual : null;
+        let salePredicted = (appConfig.startDate && loopDateStr < appConfig.startDate) ? 0 : appConfig.defaultSale;
+
+        const daySales = saleActual !== null ? saleActual : salePredicted;
+        const dayPayments = itemsByDay[i] ? itemsByDay[i].total : 0;
+        const dayCleared = itemsByDay[i] ? itemsByDay[i].clearedTotal : 0;
+
+        let saleHtml = (daySales > 0 || saleActual !== null) ? 
+            `<span class="cal-sale ${saleActual !== null ? 'actual' : 'predicted'}">₹ ${new Intl.NumberFormat('en-IN').format(daySales)}</span>` : '';
+        let issuedHtml = dayPayments > 0 ? `<span class="cal-total">₹ ${new Intl.NumberFormat('en-IN').format(dayPayments)}</span>` : '';
+        let clearHtml = dayCleared > 0 ? `<span class="cal-cleared">₹ ${new Intl.NumberFormat('en-IN').format(dayCleared)}</span>` : '';
+
+        div.innerHTML = `<div class="cal-top-left">${saleHtml}${issuedHtml}${clearHtml}</div><div class="cal-date">${i}</div>`;
+        div.onclick = () => { selectedCalDate = new Date(year, month, i); renderCalendar(); }; 
+        calContainer.appendChild(div);
+    }
+
+    // 4. Padding End (CRITICAL: This fills the rest of the grid so it doesn't break)
+    const remainingCells = (weeks * 7) - totalCellsNeeded;
+    for(let i = 0; i < remainingCells; i++) {
+        const div = document.createElement('div');
+        div.className = 'cal-cell empty';
+        calContainer.appendChild(div);
+    }
+
+    renderSidePanel();
+}
+
+        function setSideFilter(cat) { sideFilterCat = cat; updateSideFilterUI(); renderSidePanel(); }
+        function updateSideFilterUI() { document.querySelectorAll('.side-filter-btn').forEach(btn => { btn.classList.toggle('active', btn.dataset.cat === sideFilterCat); }); }
+        
+        function markIssued(id) {
+            const bill = bills.find(b => b.id === id);
+            if(bill) { bill.isIssued = true; bill.isUnlocked = false; saveBills(); renderCalendar(); if(currentView === 'table') renderTable(); }
+        }
+        
+        function markCleared(id) {
+            const bill = bills.find(b => b.id === id);
+            if(bill) { bill.isCleared = true; saveBills(); renderCalendar(); if(currentView === 'table') renderTable(); }
+        }
+        
+        function undoClear(id) {
+            showPasswordModal('Undo Clear', '1234', () => {
+                const bill = bills.find(b => b.id === id);
+                if(bill) { bill.isCleared = false; saveBills(); renderCalendar(); if(currentView === 'table') renderTable(); }
+            });
+        }
+        
+        function unlockBill(id) {
+            showPasswordModal('Unlock Payment Options', 'acc000', () => {
+                const bill = bills.find(b => b.id === id);
+                if(bill) { bill.isUnlocked = true; saveBills(); renderCalendar(); }
+            });
+        }
+
+        function renderSidePanel() {
+            const titleEl = document.getElementById('sideTitle'); const summaryEl = document.getElementById('sideSummary'); 
+            const filterGroup = document.getElementById('sideFilterGroup'); const contentEl = document.getElementById('sideContent');
+            
+            if(!selectedCalDate) {
+                titleEl.textContent = "Select a Date"; summaryEl.style.display = "none"; filterGroup.style.display = "none";
+                contentEl.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">touch_app</span><p>Click on any date in the calendar<br>to view due bills.</p></div>`; return;
+            }
+
+            const y = selectedCalDate.getFullYear(); const m = selectedCalDate.getMonth(); const d = selectedCalDate.getDate();
+            const dateStrCompare = `${y}-${String(m+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            titleEl.textContent = selectedCalDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+            filterGroup.style.display = "flex";
+
+            const dayBills = bills.filter(b => { const bd = new Date(b.dueDate); return bd.getFullYear() === y && bd.getMonth() === m && bd.getDate() === d; });
+            const feForDay = getFixedExpensesForDate(y, m, d).map(fe => ({ ...fe, supplier: fe.name, billNo: 'FIXED EXP' }));
+            const deForDay = dailyExpenses.filter(e => e.dateStr === dateStrCompare).map(e => ({ id: 'de_' + e.id, supplier: e.head, billNo: 'DAILY EXP', category: '-', amount: e.amount, dateStr: 'Recorded Manually', isDailyExpense: true }));
+
+            let allDayItems = [...dayBills, ...feForDay, ...deForDay];
+            if(allDayItems.length === 0) { summaryEl.style.display = "none"; contentEl.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">event_available</span><p>All clear! No bills or expenses due.</p></div>`; return; }
+
+            let filteredItems = allDayItems;
+            if (sideFilterCat !== 'All') filteredItems = allDayItems.filter(item => (item.category || '').trim().toUpperCase() === sideFilterCat);
+            if(filteredItems.length === 0) { summaryEl.style.display = "none"; contentEl.innerHTML = `<div class="empty-state"><span class="material-symbols-outlined">filter_list_off</span><p>No items match this category.</p></div>`; return; }
+
+            let total = 0; contentEl.innerHTML = '';
+            filteredItems.forEach(item => {
+                total += item.amount;
+                const catClass = getCategoryClass(item.category);
+                // Apply Highlight if split or manually edited
+                const highlightClass = item.isManuallyMoved ? 'is-manually-moved' : '';
+                const issuedClass = (!item.isFixedExpense && !item.isDailyExpense && item.isIssued) ? 'is-issued' : '';
+                const clearedClass = item.isCleared ? 'is-cleared' : '';
+                
+                const card = document.createElement('div'); 
+                card.className = `bill-card ${highlightClass} ${issuedClass} ${clearedClass} ${item.isFixedExpense || item.isDailyExpense ? 'is-expense' : ''}`;
+                
+                let topRightChip = '';
+                if(item.isFixedExpense) topRightChip = `<span class="chip" style="background:var(--warning-bg); color:var(--warning); padding:2px 6px; font-size:11px;">Fixed Exp</span>`;
+                else if(item.isDailyExpense) topRightChip = `<span class="chip" style="background:var(--info-bg); color:var(--info); padding:2px 6px; font-size:11px;">Daily Exp</span>`;
+                else topRightChip = `<span class="chip ${getBillType(item.billNo).class}" style="padding: 2px 6px; font-size: 11px;">${item.billNo}</span>`;
+                
+                let actionArea = '';
+                if(item.isFixedExpense) {
+                    actionArea = `<div class="bill-card-action">
+                        <div style="font-size:12px; color:var(--text-muted); font-style:italic;">Managed dynamically</div>
+                        <button class="icon-btn" style="height:28px; width:28px;" onclick="openSplitFeModal('${item.origId}', ${y}, ${m})" title="Override/Split"><span class="material-symbols-outlined" style="font-size:16px;">edit_calendar</span></button>
+                    </div>`;
+                } else if(item.isDailyExpense) {
+                    actionArea = `<div style="font-size:12px; color:var(--text-muted); font-style:italic; padding-top:4px; margin-top: 8px; border-top: 1px solid var(--border-light);">Recorded manually via '+'</div>`;
+                } else {
+                    let statusAction = '';
+                    let editTools = '';
+
+                    if (item.isCleared) {
+                        statusAction = `<label title="Undo clear (Requires Password)"><input type="checkbox" onchange="undoClear('${item.id}')" checked style="accent-color: var(--success); transform: scale(1.2);"> Cleared</label>`;
+                        // Hide edit tools when cleared
+                    } else if (item.isIssued) {
+                        statusAction = `<label title="Mark as Cleared"><input type="checkbox" onchange="markCleared('${item.id}')" style="accent-color: var(--primary); transform: scale(1.2);"> Clear</label>`;
+                        
+                        if (item.isUnlocked) {
+                            editTools = `
+                                <div style="display:flex; align-items:center; gap:4px;">
+                                    <input type="date" value="${formatDateToYYYYMMDD(new Date(item.dueDate))}" onchange="moveBillDate('${item.id}', this.value)" style="width:110px;">
+                                    <button class="icon-btn" style="height:28px; width:28px;" onclick="openEditBillModal('${item.id}')" title="Edit Purchase"><span class="material-symbols-outlined" style="font-size:16px;">edit</span></button>
+                                    <button class="icon-btn" style="height:28px; width:28px;" onclick="openSplitBillModal('${item.id}')" title="Split Bill"><span class="material-symbols-outlined" style="font-size:16px;">call_split</span></button>
+                                </div>`;
+                        } else {
+                            editTools = `
+                                <div style="display:flex; align-items:center; gap:4px;">
+                                    <button class="btn btn-danger" style="height:28px; padding: 0 8px; font-size:12px; background: #fff; border: 1px solid var(--error);" onclick="unlockBill('${item.id}')" title="Unlock to Edit/Move"><span class="material-symbols-outlined" style="font-size:14px;">lock</span> Unlock</button>
+                                </div>`;
+                        }
+                    } else {
+                        // Initial state
+                        statusAction = `<label title="Mark as Issued"><input type="checkbox" onchange="markIssued('${item.id}')" style="accent-color: var(--warning); transform: scale(1.2);"> Issue</label>`;
+                        
+                        editTools = `
+                            <div style="display:flex; align-items:center; gap:4px;">
+                                <input type="date" value="${formatDateToYYYYMMDD(new Date(item.dueDate))}" onchange="moveBillDate('${item.id}', this.value)" style="width:110px;">
+                                <button class="icon-btn" style="height:28px; width:28px;" onclick="openEditBillModal('${item.id}')" title="Edit Purchase"><span class="material-symbols-outlined" style="font-size:16px;">edit</span></button>
+                                <button class="icon-btn" style="height:28px; width:28px;" onclick="openSplitBillModal('${item.id}')" title="Split Bill"><span class="material-symbols-outlined" style="font-size:16px;">call_split</span></button>
+                            </div>`;
+                    }
+
+                    actionArea = `<div class="bill-card-action">
+                            ${statusAction}
+                            ${editTools}
+                       </div>`;
+                }
+
+                card.innerHTML = `<div class="bill-card-top"><div class="bill-card-title" style="${item.isCleared ? 'text-decoration: line-through;' : ''}">${item.supplier}</div>${topRightChip}</div><div class="bill-card-meta"><div class="meta-row"><span style="color: var(--text-muted);">Category:</span><span class="chip ${catClass}" style="padding: 2px 6px; font-size: 11px; min-width: 20px;">${item.category || '-'}</span></div></div><div class="bill-card-amount">${formatCurrency(item.amount)}</div>${actionArea}`;
+                contentEl.appendChild(card);
+            });
+
+            document.getElementById('sideCount').textContent = `${filteredItems.length} Item(s)`;
+            document.getElementById('sideTotal').textContent = formatCurrency(total);
+            summaryEl.style.display = "flex";
+        }
+
+        function moveBillDate(billId, newDateYMD) {
+            const bill = bills.find(b => b.id === billId); if(!bill || !newDateYMD) return;
+            const [y, m, d] = newDateYMD.split('-'); const newDateObj = new Date(y, m - 1, d);
+            bill.dueDateStr = formatDateToDDMMYYYY(newDateObj); bill.dueDate = newDateObj.getTime(); bill.isManuallyMoved = true;
+            saveBills(); renderCalendar();
+        }
+
+        // --- Splitting Logic ---
+        function openSplitBillModal(id) {
+            const bill = bills.find(b => b.id === id); if(!bill) return;
+            document.getElementById('splitOriginalBillId').value = bill.id;
+            document.getElementById('splitOriginalAmount').textContent = new Intl.NumberFormat('en-IN').format(bill.amount);
+            document.getElementById('splitMoveAmount').value = '';
+            document.getElementById('splitNewDate').value = '';
+            document.getElementById('splitBillModal').classList.add('active');
+        }
+
+        async function loadDataFromFirebase() {
+    try {
+        // Fetch all documents from a collection called 'metroFreshData'
+        const collections = ['config', 'feOverrides', 'vendors', 'bills', 'expenses', 'sales', 'daily_exp', 'pending_bills'];
+        
+        const fetchPromises = collections.map(name => getDoc(doc(db, 'metroFreshData', name)));
+        const results = await Promise.all(fetchPromises);
+
+        // Assign data if it exists in Firebase
+        if (results[0].exists()) appConfig = results[0].data();
+        if (results[1].exists()) feOverrides = results[1].data();
+        if (results[2].exists()) vendors = results[2].data();
+        if (results[3].exists()) bills = results[3].data().list || [];
+        if (results[4].exists()) fixedExpenses = results[4].data().list || [];
+        if (results[5].exists()) salesData = results[5].data();
+        if (results[6].exists()) dailyExpenses = results[6].data().list || [];
+        if (results[7].exists()) pendingBills = results[7].data().list || [];
+
+        // Ensure new properties exist on old bills
+        bills.forEach(b => { 
+            if(typeof b.isCleared === 'undefined') b.isCleared = false; 
+            if(typeof b.isIssued === 'undefined') b.isIssued = false;
+            if(typeof b.isUnlocked === 'undefined') b.isUnlocked = false;
+        });
+
+        // Now initialize the UI
+        initApp();
+
+    } catch (error) {
+        console.error("Error loading data from Firebase:", error);
+        alert("Failed to connect to database. Please check your internet connection.");
+    }
+}
+
+// Trigger data load when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    loadDataFromFirebase(); // Replaces your old initApp() call here
+    document.getElementById('vendorUpload').addEventListener('change', handleVendorUpload);
+    document.getElementById('purchaseUpload').addEventListener('change', handlePurchaseUpload);
+    ['filterVendor', 'filterType', 'filterInvFrom', 'filterInvTo', 'filterDueExact'].forEach(id => document.getElementById(id).addEventListener('change', renderTable));
+    
+    document.getElementById('pwdInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') submitPassword();
+    });
+});
+
+        function closeSplitBillModal() { document.getElementById('splitBillModal').classList.remove('active'); }
+
+        function confirmSplitBill() {
+            let id = document.getElementById('splitOriginalBillId').value;
+            let moveAmount = parseFloat(document.getElementById('splitMoveAmount').value);
+            let newDateStr = document.getElementById('splitNewDate').value;
+            
+            let parentBill = bills.find(b => b.id === id);
+            if(!parentBill || isNaN(moveAmount) || !newDateStr) return;
+            if(moveAmount >= parentBill.amount || moveAmount <= 0) { alert("Split amount must be greater than 0 and less than original amount."); return; }
+            
+            parentBill.amount -= moveAmount; 
+            parentBill.isManuallyMoved = true;
+            
+            let newDateObj = parseDate(newDateStr);
+            let newBill = { ...parentBill }; 
+            newBill.id = Date.now() + Math.random().toString(36).substr(2, 9);
+            newBill.amount = moveAmount;
+            newBill.dueDateStr = formatDateToDDMMYYYY(newDateObj);
+            newBill.dueDate = newDateObj.getTime();
+            newBill.isManuallyMoved = true;
+            newBill.isCleared = false;
+            newBill.isIssued = false;
+            newBill.isUnlocked = false;
+            
+            bills.push(newBill); saveBills();
+            closeSplitBillModal(); renderCalendar();
+        }
+
+        function openSplitFeModal(feId, y, m) {
+            document.getElementById('splitFeId').value = feId;
+            document.getElementById('splitFeYear').value = y;
+            document.getElementById('splitFeMonth').value = m;
+            
+            let monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('splitFeMonthLabel').textContent = `${monthNames[m]} ${y}`;
+            
+            let container = document.getElementById('splitFeRows'); container.innerHTML = '';
+            
+            let overrideKey = `${feId}_${y}_${m}`;
+            let existing = feOverrides[overrideKey];
+            
+            if (existing && existing.splits.length > 0) existing.splits.forEach(s => addFeSplitRow(s.dateStr, s.amount));
+            else {
+                let baseFe = fixedExpenses.find(f => f.id === feId);
+                let daysInM = new Date(y, m + 1, 0).getDate();
+                let actualDay = Math.min(baseFe.day, daysInM);
+                let defaultDateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(actualDay).padStart(2,'0')}`;
+                addFeSplitRow(defaultDateStr, baseFe.amount);
+            }
+            document.getElementById('splitFeModal').classList.add('active');
+        }
+
+        function addFeSplitRow(dateVal = '', amountVal = '') {
+            let container = document.getElementById('splitFeRows');
+            let div = document.createElement('div'); div.className = 'filter-group-row'; div.style.marginBottom = '8px';
+            div.innerHTML = `<input type="date" class="modern-input fe-split-date" value="${dateVal}" style="flex:1;"><input type="number" class="modern-input fe-split-amount" value="${amountVal}" placeholder="Amount" style="flex:1;"><button class="icon-btn" onclick="this.parentElement.remove()" style="color:var(--error);"><span class="material-symbols-outlined">close</span></button>`;
+            container.appendChild(div);
+        }
+
+        function closeSplitFeModal() { document.getElementById('splitFeModal').classList.remove('active'); }
+
+        function saveFeOverride() {
+            let feId = document.getElementById('splitFeId').value; let y = document.getElementById('splitFeYear').value; let m = document.getElementById('splitFeMonth').value;
+            let rows = document.querySelectorAll('#splitFeRows .filter-group-row');
+            let splits = []; let totalAmt = 0;
+            
+            try {
+                rows.forEach(r => {
+                    let dStr = r.querySelector('.fe-split-date').value; let amt = parseFloat(r.querySelector('.fe-split-amount').value);
+                    if(dStr && !isNaN(amt)) {
+                        let selectedDate = parseDate(dStr);
+                        if (selectedDate.getFullYear() == y && selectedDate.getMonth() == m) { splits.push({ dateStr: dStr, amount: amt }); totalAmt += amt; } 
+                        else { alert(`Please restrict splits to dates within ${document.getElementById('splitFeMonthLabel').textContent}`); throw "Invalid Date"; }
+                    }
+                });
+                
+                let overrideKey = `${feId}_${y}_${m}`;
+                if (splits.length === 0) feOverrides[overrideKey] = { amount: 0, splits: [] };
+                else feOverrides[overrideKey] = { amount: totalAmt, splits: splits };
+                
+                setDoc(doc(db, 'metroFreshData', 'feOverrides'), feOverrides);
+                closeSplitFeModal(); renderCalendar();
+            } catch (e) {}
+        }
+
+        // --- Settings / Edit / Delete ---
+        function switchSettingsTab(tab) { document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.settings-pane').forEach(p => p.classList.remove('active')); event.target.classList.add('active'); document.getElementById('pane-' + tab).classList.add('active'); }
+        function renderManagePurchases() {
+            const tbody = document.getElementById('managePurchasesBody'); tbody.innerHTML = '';
+            const query = (document.getElementById('purchaseSettingsSearch').value || '').toLowerCase().trim();
+            if (query.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);"><span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 8px; opacity: 0.5;">search</span>Type a Supplier Name or Bill No to find purchases.</td></tr>`; return; }
+            const filteredBills = bills.filter(b => b.supplier.toLowerCase().includes(query) || b.billNo.toLowerCase().includes(query));
+            if (filteredBills.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);"><span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 8px; opacity: 0.5;">search_off</span>No purchases found matching "${query}".</td></tr>`; return; }
+            
+            filteredBills.slice(0, 100).forEach(b => { 
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td style="font-weight: 500;">${b.supplier}</td><td>${b.billNo}</td><td>${formatCurrency(b.amount)}</td><td>${b.dueDateStr}</td><td style="text-align: right;"><button class="icon-btn" onclick="openEditBillModal('${b.id}')" style="display:inline-flex; width:32px; height:32px; color:var(--primary);"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button><button class="icon-btn" onclick="deleteBill('${b.id}')" style="display:inline-flex; width:32px; height:32px; color: var(--error);"><span class="material-symbols-outlined" style="font-size: 18px;">delete</span></button></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPendingPurchases() {
+            const tbody = document.getElementById('pendingPurchasesBody'); tbody.innerHTML = '';
+            if (pendingBills.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 30px; color: var(--text-muted);">No pending purchases.</td></tr>`; return; }
+            pendingBills.forEach(pb => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td style="font-weight: 500;">${pb.supplier}</td><td>${pb.billNo}</td><td style="color:var(--text-muted); font-size:12px;">${pb.dateStr}</td><td><input type="date" id="pendDate_${pb.id}" class="modern-input" style="height:28px; font-size:13px; padding:0 8px;"></td><td><input type="number" id="pendAmt_${pb.id}" class="modern-input" value="${pb.amount}" style="height:28px; width:90px; font-size:13px; padding:0 8px;"></td><td style="text-align: right; white-space: nowrap;"><button class="btn btn-primary" style="height: 28px; padding: 0 10px; font-size:12px; margin-right:4px;" onclick="confirmPendingBill('${pb.id}')">Confirm</button><button class="icon-btn" style="display:inline-flex; width:28px; height:28px; color: var(--error);" onclick="discardPendingBill('${pb.id}')" title="Discard"><span class="material-symbols-outlined" style="font-size: 16px;">delete</span></button></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function confirmPendingBill(id) {
+            const pbIndex = pendingBills.findIndex(b => b.id === id); if(pbIndex === -1) return; const pb = pendingBills[pbIndex];
+            const dateInput = document.getElementById('pendDate_' + id).value; const amtInput = parseFloat(document.getElementById('pendAmt_' + id).value);
+            if(!dateInput) { alert("Please select an Actual Date to confirm this bill."); return; } if(isNaN(amtInput)) { alert("Please provide a valid amount."); return; }
+            const vData = vendors[pb.supplier] || { creditDays: 0, category: 'N/A' };
+            const billDateObj = parseDate(dateInput); const formattedActualDateStr = formatDateToDDMMYYYY(billDateObj);
+            let dueDateObj = new Date(billDateObj); dueDateObj.setDate(dueDateObj.getDate() + vData.creditDays);
+            
+            bills.push({ id: Date.now() + Math.random().toString(36).substr(2, 9), supplier: pb.supplier, billNo: pb.billNo, dateStr: formattedActualDateStr, amount: amtInput, category: vData.category, dueDateStr: formatDateToDDMMYYYY(dueDateObj), dueDate: dueDateObj.getTime(), billDate: billDateObj.getTime(), isManuallyMoved: false, isCleared: false, isIssued: false, isUnlocked: false });
+            pendingBills.splice(pbIndex, 1); saveBills(); savePendingBills(); renderPendingPurchases();
+        }
+
+        function discardPendingBill(id) { if(confirm("Discard this pending bill?")) { pendingBills = pendingBills.filter(b => b.id !== id); savePendingBills(); renderPendingPurchases(); } }
+        function openEditBillModal(id) { const bill = bills.find(b => b.id === id); if(!bill) return; document.getElementById('editBillId').value = bill.id; document.getElementById('editBillSupplier').value = bill.supplier; document.getElementById('editBillNo').value = bill.billNo; document.getElementById('editBillAmount').value = bill.amount; document.getElementById('editBillDueDate').value = formatDateToYYYYMMDD(new Date(bill.dueDate)); document.getElementById('editBillModal').classList.add('active'); }
+        function closeEditBillModal() { document.getElementById('editBillModal').classList.remove('active'); }
+        function saveEditedBill() {
+            const id = document.getElementById('editBillId').value; const amt = parseFloat(document.getElementById('editBillAmount').value); const dateYMD = document.getElementById('editBillDueDate').value;
+            if(!id || isNaN(amt) || !dateYMD) return; const bill = bills.find(b => b.id === id);
+            if(bill) { bill.amount = amt; const [y, m, d] = dateYMD.split('-'); const newDateObj = new Date(y, m - 1, d); bill.dueDateStr = formatDateToDDMMYYYY(newDateObj); bill.dueDate = newDateObj.getTime(); bill.isManuallyMoved = true; saveBills(); renderManagePurchases(); closeEditBillModal(); if(currentView === 'table') renderTable(); if(currentView === 'calendar') renderCalendar(); }
+        }
+        function deleteBill(id) { if(confirm("Permanently delete this purchase/bill?")) { bills = bills.filter(b => b.id !== id); saveBills(); renderManagePurchases(); if(currentView === 'table') renderTable(); if(currentView === 'calendar') renderCalendar(); } }
+
+        function populateVendorFilter() { const select = document.getElementById('filterVendor'); select.innerHTML = '<option value="All">All Vendors</option>'; Object.keys(vendors).sort().forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.textContent = v; select.appendChild(opt); }); }
+
+        // --- Upload Handlers ---
+        function parseCSVLine(text) { let result = []; let curVal = ''; let inQuotes = false; for (let i = 0; i < text.length; i++) { let char = text[i]; if (inQuotes) { if (char === '"') { if (i < text.length - 1 && text[i + 1] === '"') { curVal += '"'; i++; } else inQuotes = false; } else curVal += char; } else { if (char === '"') inQuotes = true; else if (char === ',') { result.push(curVal.trim()); curVal = ''; } else curVal += char; } } result.push(curVal.trim()); return result; }
+        
+        function handleVendorUpload(e) {
+            const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
+            reader.onload = (event) => { const lines = event.target.result.split(/\r?\n/); let count = 0; for(let i = 1; i < lines.length; i++) { if(!lines[i].trim()) continue; const cols = parseCSVLine(lines[i]); if(cols.length >= 3) { vendors[cols[0]] = { creditDays: parseInt(cols[1]) || 0, category: cols[2] }; count++; } } saveVendors(); renderVendorSettings(); populateVendorFilter(); recalculateDueDates(); alert(`${count} vendors uploaded.`); };
+            reader.readAsText(file); e.target.value = ''; 
+        }
+
+        function handlePurchaseUpload(e) {
+            const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = new Uint8Array(event.target.result); const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0]; const worksheet = workbook.Sheets[firstSheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1, raw: false}); let startIndex = -1;
+                    
+                    for(let i = 0; i < rows.length; i++) { const row = rows[i]; if(!row || row.length < 2) continue; const rowStr = row.join(',').toLowerCase(); if(rowStr.includes("supplier") && rowStr.includes("bill no")) { startIndex = i + 1; break; } }
+                    if(startIndex === -1) { alert("Invalid format. Cannot find 'Supplier' and 'Bill No' headers."); return; }
+
+                    tempUploadedBills = [];
+                    for(let i = startIndex; i < rows.length; i++) {
+                        const cols = rows[i]; if(!cols || cols.length === 0 || !cols[0]) continue;
+                        if(cols.length >= 4) {
+                            const supplier = String(cols[0]).trim(); const billNo = String(cols[1]).trim(); const dateStr = String(cols[2]).trim(); 
+                            const amount = parseFloat(String(cols[3]).replace(/[^0-9.-]+/g, "")) || 0;
+                            tempUploadedBills.push({ tempId: 'temp_' + Date.now() + Math.random().toString(36).substr(2, 9), supplier, billNo, dateStr, amount });
+                        }
+                    }
+                    if(tempUploadedBills.length > 0) { renderUploadReview(); document.getElementById('uploadReviewModal').classList.add('active'); } 
+                    else alert("No valid bills found.");
+                } catch (error) { alert("Failed to read the Excel file."); }
+            };
+            reader.readAsArrayBuffer(file); e.target.value = '';
+        }
+
+        function renderUploadReview() {
+            const tbody = document.getElementById('uploadReviewBody'); tbody.innerHTML = ''; document.getElementById('checkAllUploads').checked = true;
+            tempUploadedBills.forEach(tb => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td style="padding: 12px 16px; text-align: center;"><input type="checkbox" id="chk_${tb.tempId}" checked style="transform: scale(1.2); accent-color: var(--primary);"></td><td style="padding: 12px 16px; font-weight: 500;">${tb.supplier}</td><td style="padding: 12px 16px;">${tb.billNo}</td><td style="padding: 12px 16px;">${tb.dateStr}</td><td style="padding: 12px 16px; text-align: right; font-weight: 500;">${formatCurrency(tb.amount)}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleAllUploads(masterCheckbox) { const isChecked = masterCheckbox.checked; tempUploadedBills.forEach(tb => { document.getElementById('chk_' + tb.tempId).checked = isChecked; }); }
+        function closeUploadReviewModal() { document.getElementById('uploadReviewModal').classList.remove('active'); tempUploadedBills = []; }
+
+        function processUploadReview() {
+            let confirmCount = 0; let pendingCount = 0;
+            tempUploadedBills.forEach(tb => {
+                const isChecked = document.getElementById('chk_' + tb.tempId).checked; const vData = vendors[tb.supplier] || { creditDays: 0, category: 'N/A' };
+                if (isChecked) {
+                    const billDateObj = parseDate(tb.dateStr); let existingBill = bills.find(b => b.billNo === tb.billNo && b.supplier === tb.supplier);
+                    let dueDateObj = new Date(billDateObj); dueDateObj.setDate(dueDateObj.getDate() + vData.creditDays);
+                    if(existingBill) { existingBill.amount = tb.amount; existingBill.dateStr = tb.dateStr; existingBill.billDate = billDateObj.getTime(); existingBill.category = vData.category; if(!existingBill.isManuallyMoved) { existingBill.dueDateStr = formatDateToDDMMYYYY(dueDateObj); existingBill.dueDate = dueDateObj.getTime(); } } 
+                    else bills.push({ id: Date.now() + Math.random().toString(36).substr(2, 9), supplier: tb.supplier, billNo: tb.billNo, dateStr: tb.dateStr, amount: tb.amount, category: vData.category, dueDateStr: formatDateToDDMMYYYY(dueDateObj), dueDate: dueDateObj.getTime(), billDate: billDateObj.getTime(), isManuallyMoved: false, isCleared: false, isIssued: false, isUnlocked: false });
+                    confirmCount++;
+                } else {
+                    let existingPending = pendingBills.find(pb => pb.billNo === tb.billNo && pb.supplier === tb.supplier);
+                    if (existingPending) { existingPending.amount = tb.amount; existingPending.dateStr = tb.dateStr; } 
+                    else pendingBills.push({ id: Date.now() + Math.random().toString(36).substr(2, 9), supplier: tb.supplier, billNo: tb.billNo, dateStr: tb.dateStr, amount: tb.amount });
+                    pendingCount++;
+                }
+            });
+            saveBills(); savePendingBills(); 
+            if(currentView === 'calendar') renderCalendar(); if(currentView === 'table') renderTable(); renderPendingPurchases();
+            closeUploadReviewModal(); alert(`Processed successfully.\nConfirmed: ${confirmCount}\nSent to Pending: ${pendingCount}`);
+        }
+
+        function recalculateDueDates() {
+            bills.forEach(b => {
+                if (b.dateStr) b.billDate = parseDate(b.dateStr).getTime();
+                if(!b.isManuallyMoved) { const vData = vendors[b.supplier] || { creditDays: 0, category: 'N/A' }; b.category = vData.category; let dueDateObj = new Date(b.billDate); dueDateObj.setDate(dueDateObj.getDate() + vData.creditDays); b.dueDateStr = formatDateToDDMMYYYY(dueDateObj); b.dueDate = dueDateObj.getTime(); }
+            }); saveBills(); 
+        }
+
+        function clearVendorData() { if(confirm("Delete all vendor data?")) { vendors = {}; saveVendors(); populateVendorFilter(); renderVendorSettings(); recalculateDueDates(); } }
+        function clearPurchaseData() { if(confirm("Delete all purchase data?")) { bills = []; pendingBills = []; saveBills(); savePendingBills(); initApp(); } }
+        function clearAllData() { if(confirm("Delete ALL data permanently?")) { vendors = {}; bills = []; pendingBills = []; fixedExpenses = []; salesData = {}; dailyExpenses = []; feOverrides = {}; saveVendors(); saveBills(); savePendingBills(); saveExpenses(); saveDailyExpenses(); localStorage.removeItem('mfi_sales_v2'); localStorage.removeItem('mfi_fe_overrides_v2'); initApp(); } }
+
+        function renderVendorSettings() { const tbody = document.getElementById('vendorTableBody'); tbody.innerHTML = ''; Object.keys(vendors).sort().forEach(v => { const tr = document.createElement('tr'); tr.innerHTML = `<td style="font-weight: 500;">${v}</td><td>${vendors[v].creditDays}</td><td><span class="chip ${getCategoryClass(vendors[v].category)}">${vendors[v].category || '-'}</span></td><td style="text-align: right;"><button class="icon-btn" onclick="editVendor('${v}')" style="display:inline-flex; width:32px; height:32px; color: var(--primary);"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button><button class="icon-btn" onclick="deleteVendor('${v}')" style="display:inline-flex; width:32px; height:32px; color: var(--error);"><span class="material-symbols-outlined" style="font-size: 18px;">delete</span></button></td>`; tbody.appendChild(tr); }); }
+        function editVendor(name) { document.getElementById('vName').value = name; document.getElementById('vDays').value = vendors[name].creditDays; document.getElementById('vCat').value = vendors[name].category || 'A'; const scrollArea = document.getElementById('settingsBody'); scrollArea.scrollTo({ top: 0, behavior: 'smooth' }); const form = document.getElementById('vendorEditForm'); form.style.backgroundColor = 'var(--primary-bg)'; setTimeout(() => { form.style.backgroundColor = 'var(--background)'; }, 800); }
+        function addOrUpdateVendor() { const name = document.getElementById('vName').value.trim(); const days = parseInt(document.getElementById('vDays').value) || 0; const cat = document.getElementById('vCat').value.trim(); if(!name) return; vendors[name] = { creditDays: days, category: cat }; saveVendors(); document.getElementById('vName').value = ''; renderVendorSettings(); recalculateDueDates(); }
+        function deleteVendor(name) { if(confirm(`Delete vendor ${name}?`)) { delete vendors[name]; saveVendors(); renderVendorSettings(); recalculateDueDates(); } }
+
+        function renderExpenseSettings() { const tbody = document.getElementById('expenseTableBody'); tbody.innerHTML = ''; fixedExpenses.forEach(fe => { const tr = document.createElement('tr'); tr.innerHTML = `<td style="font-weight: 500;">${fe.name}</td><td>${fe.day}</td><td><span class="chip ${getCategoryClass(fe.category)}">${fe.category || '-'}</span></td><td style="font-weight:500;">${formatCurrency(fe.amount)}</td><td style="text-align: right;"><button class="icon-btn" onclick="deleteExpense('${fe.id}')" style="display:inline-flex; width:32px; height:32px; color: var(--error);"><span class="material-symbols-outlined" style="font-size: 18px;">delete</span></button></td>`; tbody.appendChild(tr); }); }
+        function addFixedExpense() { const name = document.getElementById('eName').value.trim(); const day = parseInt(document.getElementById('eDay').value); const cat = document.getElementById('eCat').value.trim(); const amount = parseFloat(document.getElementById('eAmount').value); if(!name || !day || !amount || day < 1 || day > 31) return; fixedExpenses.push({ id: Date.now().toString(), name, day, category: cat, amount }); saveExpenses(); renderExpenseSettings(); }
+
+        function deleteExpense(id) { fixedExpenses = fixedExpenses.filter(fe => fe.id !== id); saveExpenses(); renderExpenseSettings(); }
+        // Expose functions to global scope so HTML onclick handlers can find them
+window.openDataEntryModal = openDataEntryModal;
+window.closeDataEntryModal = closeDataEntryModal;
+window.switchModalTab = switchModalTab;
+window.saveModalSale = saveModalSale;
+window.saveModalExpense = saveModalExpense;
+
+window.closeUploadReviewModal = closeUploadReviewModal;
+window.toggleAllUploads = toggleAllUploads;
+window.processUploadReview = processUploadReview;
+
+window.closeEditBillModal = closeEditBillModal;
+window.saveEditedBill = saveEditedBill;
+
+window.closeSplitBillModal = closeSplitBillModal;
+window.confirmSplitBill = confirmSplitBill;
+
+window.closeSplitFeModal = closeSplitFeModal;
+window.addFeSplitRow = addFeSplitRow;
+window.saveFeOverride = saveFeOverride;
+
+window.closePasswordModal = closePasswordModal;
+window.submitPassword = submitPassword;
+
+window.openSearch = openSearch;
+window.closeSearch = closeSearch;
+window.handleRealTimeSearch = handleRealTimeSearch;
+window.clearGlobalSearch = clearGlobalSearch;
+window.toggleFilters = toggleFilters;
+window.clearFilters = clearFilters;
+
+window.showDashModel = showDashModel;
+window.switchView = switchView;
+window.changeMonth = changeMonth;
+window.goToCurrentMonth = goToCurrentMonth;
+window.setSideFilter = setSideFilter;
+
+window.markIssued = markIssued;
+window.markCleared = markCleared;
+window.undoClear = undoClear;
+window.unlockBill = unlockBill;
+window.openSplitFeModal = openSplitFeModal;
+window.moveBillDate = moveBillDate;
+window.openEditBillModal = openEditBillModal;
+window.openSplitBillModal = openSplitBillModal;
+
+window.switchSettingsTab = switchSettingsTab;
+window.saveConfig = saveConfig;
+window.clearVendorData = clearVendorData;
+window.clearPurchaseData = clearPurchaseData;
+window.clearAllData = clearAllData;
+window.addOrUpdateVendor = addOrUpdateVendor;
+window.editVendor = editVendor;
+window.deleteVendor = deleteVendor;
+window.addFixedExpense = addFixedExpense;
+window.deleteExpense = deleteExpense;
+window.renderManagePurchases = renderManagePurchases;
+window.deleteBill = deleteBill;
+window.confirmPendingBill = confirmPendingBill;
+window.discardPendingBill = discardPendingBill;
+window.calculateBankBalance = calculateBankBalance;
+
+    </script>
+    <!-- Register Service Worker for PWA -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            }, err => {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+    </script>
+</body>
+</html>
+</body>
+</html>
