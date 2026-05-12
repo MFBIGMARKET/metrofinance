@@ -483,6 +483,7 @@
             <div class="icon-toggle-group">
                 <button class="toggle-btn" id="viewTableBtn" onclick="switchView('table')" title="Table View"><span class="material-symbols-outlined">table_rows</span></button>
                 <button class="toggle-btn" id="viewCalendarBtn" onclick="switchView('calendar')" title="Calendar View"><span class="material-symbols-outlined">calendar_month</span></button>
+                <button class="toggle-btn" id="viewDirectPaymentBtn" onclick="switchView('directPayment')" title="Direct Payment"><span class="material-symbols-outlined">payments</span></button>
             </div>
             <button class="icon-btn" id="viewSettingsBtn" title="Settings" onclick="switchView('settings')"><span class="material-symbols-outlined">settings</span></button>
         </div>
@@ -613,6 +614,75 @@
                             <span class="material-symbols-outlined">event_note</span>
                             <p>Click on any date in the calendar<br>to view due bills.</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Direct Payment View -->
+        <div id="directPaymentView" class="view">
+            <div class="dashboard-layout">
+                <!-- Left Form (65%) -->
+                <div class="dashboard-left" style="flex: 65; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 32px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; box-shadow: var(--shadow-1);">
+                    <h3 style="font-size: 24px; font-weight: 500; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 16px;">Schedule Direct Payment</h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <!-- Vendor Info -->
+                        <div class="filter-group" style="grid-column: span 2;">
+                            <label class="filter-label">Select Vendor</label>
+                            <select id="dpVendor" class="modern-input" onchange="updateDpVendorInfo()" style="font-size: 16px; height: 44px;">
+                                <option value="">-- Select Vendor --</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Category</label>
+                            <input type="text" id="dpCategory" class="modern-input" readonly style="background: var(--border-light); font-size: 16px; height: 44px;">
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Credit Days</label>
+                            <input type="text" id="dpDays" class="modern-input" readonly style="background: var(--border-light); font-size: 16px; height: 44px;">
+                        </div>
+
+                        <!-- Payment Info -->
+                        <div class="filter-group">
+                            <label class="filter-label">Purchase Date (Invoice Date)</label>
+                            <input type="date" id="dpPurchaseDate" class="modern-input" oninput="renderDpCalendar()" onchange="renderDpCalendar()" style="font-size: 16px; height: 44px;">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Scheduled Payment Date</label>
+                            <input type="date" id="dpDate" class="modern-input" readonly style="font-size: 16px; height: 44px; background: var(--info-bg); color: var(--info);" placeholder="Select from table ->">
+                        </div>
+
+                        <div class="filter-group" style="grid-column: span 2;">
+                            <label class="filter-label">Amount (₹)</label>
+                            <input type="number" id="dpAmount" class="modern-input" placeholder="0.00" style="font-size: 20px; height: 50px; font-weight: 500;">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" style="margin-top: auto; height: 50px; font-size: 16px;" onclick="confirmDirectPayment()">Confirm & Schedule Payment</button>
+                </div>
+
+                <!-- Right Table (35%) -->
+                <div class="dashboard-right" style="flex: 35; padding: 0; display: flex; flex-direction: column;">
+                    <div class="calendar-header" style="padding: 16px; border-bottom: 1px solid var(--border); background: var(--background);">
+                        <h3 style="font-size: 16px; font-weight: 500; text-align: center; color: var(--text-main);">Available Dates</h3>
+                        <p style="font-size: 12px; text-align: center; color: var(--text-muted); margin-top: 4px;">Based on Purchase Date + Credit Days</p>
+                    </div>
+                    <div class="date-table-wrapper" style="flex: 1; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="position: sticky; top: 0; background: var(--surface); padding: 12px; font-size: 12px; font-weight: 500; color: var(--text-muted); text-align: left; border-bottom: 1px solid var(--border); z-index: 10;">Date</th>
+                                    <th style="position: sticky; top: 0; background: var(--surface); padding: 12px; font-size: 12px; font-weight: 500; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border); z-index: 10;">Scheduled</th>
+                                    <th style="position: sticky; top: 0; background: var(--surface); padding: 12px; font-size: 12px; font-weight: 500; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border); z-index: 10;">Limit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dpCalendarListBody">
+                                <tr><td colspan="3" style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">Select a Purchase Date to view available dates.</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -1208,11 +1278,12 @@
     function switchView(view) {
         currentView = view; updateFabVisibility();
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById(view + 'View').classList.add('active');
-        document.getElementById('viewDashboardBtn').classList.remove('active-state'); document.getElementById('viewTableBtn').classList.remove('active'); document.getElementById('viewCalendarBtn').classList.remove('active'); document.getElementById('viewSettingsBtn').classList.remove('active-state');
+        document.getElementById('viewDashboardBtn').classList.remove('active-state'); document.getElementById('viewTableBtn').classList.remove('active'); document.getElementById('viewCalendarBtn').classList.remove('active'); document.getElementById('viewDirectPaymentBtn').classList.remove('active'); document.getElementById('viewSettingsBtn').classList.remove('active-state');
         
         if(view === 'dashboard') { document.getElementById('viewDashboardBtn').classList.add('active-state'); showDashModel(currentDashModel); }
         else if(view === 'table') { document.getElementById('viewTableBtn').classList.add('active'); renderTable(); }
         else if(view === 'calendar') { document.getElementById('viewCalendarBtn').classList.add('active'); renderCalendar(); }
+        else if(view === 'directPayment') { document.getElementById('viewDirectPaymentBtn').classList.add('active'); renderCalendar(); populateDpVendorDropdown(); }
         else if(view === 'settings') { document.getElementById('viewSettingsBtn').classList.add('active-state'); renderManagePurchases(); renderPendingPurchases(); }
         applyFilterVisibility();
     }
@@ -1263,12 +1334,15 @@
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         
         document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+        const dpMonthYear = document.getElementById('dpMonthYear');
+        if(dpMonthYear) dpMonthYear.textContent = `${monthNames[month]} ${year}`;
 
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const listBody = document.getElementById('calendarListBody');
+        const dpListBody = document.getElementById('dpCalendarListBody');
         
-        if(!listBody) return; // Prevent error if HTML isn't updated yet
-        listBody.innerHTML = '';
+        if(listBody) listBody.innerHTML = '';
+        if(dpListBody) dpListBody.innerHTML = '';
 
         // Data Aggregation
         const itemsByDay = {};
@@ -1337,15 +1411,168 @@
                 <td style="text-align: right; padding: 12px; border-bottom: 1px solid var(--border-light); color: var(--info); font-weight: 500;">${limitStr}</td>
             `;
             
-            // Make row clickable
-            tr.onclick = () => { 
-                selectedCalDate = new Date(year, month, i); 
-                renderCalendar(); 
-            }; 
-            listBody.appendChild(tr);
+            if(listBody) {
+                // Click handler for main Calendar View
+                tr.onclick = () => { 
+                    selectedCalDate = new Date(year, month, i); 
+                    renderCalendar(); 
+                }; 
+                listBody.appendChild(tr);
+            }
+            
+            
         }
 
         renderSidePanel();
+    }
+
+    
+
+    
+
+    
+
+    function populateDpVendorDropdown() {
+        const select = document.getElementById('dpVendor');
+        if(!select) return;
+        select.innerHTML = '<option value="">-- Select Vendor --</option>';
+        Object.keys(vendors).sort().forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v; opt.textContent = v;
+            select.appendChild(opt);
+        });
+    }
+
+    function updateDpVendorInfo() {
+        const vName = document.getElementById('dpVendor').value;
+        if (vName && vendors[vName]) {
+            document.getElementById('dpCategory').value = vendors[vName].category || '-';
+            document.getElementById('dpDays').value = vendors[vName].creditDays || '0';
+        } else {
+            document.getElementById('dpCategory').value = '';
+            document.getElementById('dpDays').value = '';
+        }
+        renderDpCalendar(); // Trigger dynamic table update
+    }
+
+    function renderDpCalendar() {
+        const dpListBody = document.getElementById('dpCalendarListBody');
+        if(!dpListBody) return;
+
+        const vName = document.getElementById('dpVendor').value;
+        const pDateStr = document.getElementById('dpPurchaseDate').value;
+        
+        // Render immediately as soon as a Purchase Date is picked
+        if (!pDateStr) {
+            dpListBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 13px;">Select a Purchase Date to view available dates.</td></tr>';
+            return;
+        }
+
+        // If no vendor is selected yet, just use 0 credit days so the table still renders
+        const vData = (vName && vendors[vName]) ? vendors[vName] : { creditDays: 0 };
+        const purchaseDate = parseDate(pDateStr);
+        
+        // Start Date = Purchase Date + Credit Days
+        let startDate = new Date(purchaseDate);
+        startDate.setDate(startDate.getDate() + vData.creditDays);
+        
+        // End Date = Start Date + 10 Days
+        let endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 10);
+
+        dpListBody.innerHTML = '';
+        
+        let currDate = new Date(startDate);
+        while (currDate <= endDate) {
+            let y = currDate.getFullYear();
+            let m = currDate.getMonth();
+            let d = currDate.getDate();
+            let dateStr = `${y}-${String(m+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            let timeVal = clearTime(currDate);
+
+            let dayAmount = 0;
+            
+            // Sum all amounts on this day
+            bills.forEach(b => { if (clearTime(b.dueDate) === timeVal) dayAmount += b.amount; });
+            dailyExpenses.forEach(e => { if (e.dateStr === dateStr) dayAmount += e.amount; });
+            let feDayItems = getFixedExpensesForDate(y, m, d);
+            feDayItems.forEach(fe => dayAmount += fe.amount);
+
+            let saleActual = (salesData[dateStr] && salesData[dateStr].actual !== null) ? salesData[dateStr].actual : null;
+            let salePredicted = (appConfig.startDate && dateStr < appConfig.startDate) ? 0 : appConfig.defaultSale;
+            let dayLimit = saleActual !== null ? saleActual : salePredicted;
+
+            const tr = document.createElement('tr');
+            tr.className = 'date-row';
+            
+            const limitStr = dayLimit > 0 ? formatCurrency(dayLimit) : '-';
+            const amountStr = dayAmount > 0 ? formatCurrency(dayAmount) : '-';
+            const formattedDate = `${String(d).padStart(2, '0')}/${String(m+1).padStart(2, '0')}/${y}`;
+
+            tr.innerHTML = `
+                <td style="text-align: left; padding: 12px; border-bottom: 1px solid var(--border-light); font-weight: 500; color: var(--text-main); white-space: nowrap;">${formattedDate}</td>
+                <td style="text-align: right; padding: 12px; border-bottom: 1px solid var(--border-light); color: ${dayAmount > 0 ? 'var(--error)' : 'var(--text-muted)'}; font-weight: 500;">${amountStr}</td>
+                <td style="text-align: right; padding: 12px; border-bottom: 1px solid var(--border-light); color: var(--info); font-weight: 500;">${limitStr}</td>
+            `;
+            
+            tr.onclick = () => {
+                document.getElementById('dpDate').value = dateStr;
+                document.querySelectorAll('#dpCalendarListBody .date-row').forEach(row => row.classList.remove('selected'));
+                tr.classList.add('selected');
+            };
+            
+            dpListBody.appendChild(tr);
+            
+            // Move to next day
+            currDate.setDate(currDate.getDate() + 1);
+        }
+    }
+
+    function confirmDirectPayment() {
+        const supplier = document.getElementById('dpVendor').value;
+        const pDateStr = document.getElementById('dpPurchaseDate').value;
+        const dateStr = document.getElementById('dpDate').value;
+        const amount = parseFloat(document.getElementById('dpAmount').value);
+
+        if (!supplier) { alert("Please select a vendor."); return; }
+        if (!pDateStr) { alert("Please select a purchase date."); return; }
+        if (!dateStr) { alert("Please select a Scheduled Payment Date from the right-side table."); return; }
+        if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount."); return; }
+
+        const billDateObj = parseDate(pDateStr);
+        const dueDateObj = parseDate(dateStr);
+        const formattedDueDateStr = formatDateToDDMMYYYY(dueDateObj);
+        const category = document.getElementById('dpCategory').value;
+
+        const newBill = {
+            id: 'DP_' + Date.now() + Math.random().toString(36).substr(2, 9),
+            supplier: supplier,
+            billNo: 'DIRECT-PAY',
+            dateStr: formatDateToDDMMYYYY(billDateObj), 
+            amount: amount,
+            category: category,
+            dueDateStr: formattedDueDateStr,
+            dueDate: dueDateObj.getTime(),
+            billDate: billDateObj.getTime(),
+            isManuallyMoved: true, // Prevents global auto-recalculations from moving this date
+            isCleared: false,
+            isIssued: false,
+            isUnlocked: true 
+        };
+
+        bills.push(newBill);
+        saveBills();
+        renderCalendar(); // Update main calendar behind the scenes
+        renderDpCalendar(); // Refresh the table so limits update instantly
+        
+        // Reset form
+        document.getElementById('dpVendor').value = '';
+        document.getElementById('dpPurchaseDate').value = '';
+        document.getElementById('dpDate').value = '';
+        document.getElementById('dpAmount').value = '';
+        updateDpVendorInfo();
+        
+        alert("Direct Payment successfully scheduled!");
     }
 
     function setSideFilter(cat) { sideFilterCat = cat; updateSideFilterUI(); renderSidePanel(); }
@@ -1790,6 +2017,9 @@
     window.confirmPendingBill = confirmPendingBill;
     window.discardPendingBill = discardPendingBill;
     window.calculateBankBalance = calculateBankBalance;
+    window.updateDpVendorInfo = updateDpVendorInfo;
+    window.confirmDirectPayment = confirmDirectPayment;
+    window.renderDpCalendar = renderDpCalendar;
     </script>
     
     <!-- Register Service Worker for PWA -->
