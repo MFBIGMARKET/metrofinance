@@ -215,7 +215,7 @@
 }
 
 .calendar-main {
-    flex: 1;
+    flex: 3; /* 30% Width */
     display: flex;
     flex-direction: column;
     background: var(--surface);
@@ -224,87 +224,21 @@
     overflow: hidden;
 }
 
-/* 2. The Grid Fix */
-#calendarGridContainer {
-    display: grid !important;
-    flex: 1; /* Stretch to fill all vertical space */
-    grid-template-columns: repeat(7, 1fr);
-    /* Force 40px header, then divide remaining space equally between weeks */
-    grid-template-rows: 40px repeat(var(--week-count, 5), 1fr);
-    background-color: #dadce0 !important; /* Grid Line Color */
-    gap: 1px !important; /* Grid Line Thickness */
-    border-top: 1px solid #dadce0;
+/* Right: Permanent Side Panel */
+.calendar-side { 
+    flex: 7; /* 70% Width */ 
+    background: var(--surface); 
+    border: 1px solid var(--border); 
+    border-radius: 8px; 
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden; 
 }
 
-/* 3. The Cell Fix */
-.cal-cell {
-    background-color: #ffffff !important;
-    position: relative !important;
-    padding: 6px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    min-height: 0; /* Allows 1fr to work */
-    overflow: hidden;
-}
-
-.cal-cell.empty {
-    background-color: #f8f9fa !important;
-}
-
-.cal-cell:hover:not(.empty) {
-    background-color: #f1f3f4 !important;
-}
-
-.cal-day-header {
-    background-color: #ffffff !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 500;
-    font-size: 12px;
-    color: #70757a;
-    text-transform: uppercase;
-}
-
-/* 4. The Pill and Date Fix */
-.cal-top-left {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    width: 100%;
-}
-
-.cal-date {
-    position: absolute !important;
-    bottom: 4px;
-    right: 6px;
-    font-size: 12px;
-    font-weight: 500;
-    color: #3c4043;
-    z-index: 5;
-}
-
-.cal-sale, .cal-total, .cal-cleared {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 1px 4px;
-    border-radius: 4px;
-    border: 1px solid;
-    width: fit-content;
-    max-width: 95%;
-    display: block;
-    line-height: 1.2;
-}
-
-/* Colors */
-.cal-sale.predicted { background: #e8f0fe; color: #1a73e8; border-color: #d2e3fc; }
-.cal-sale.actual { background: #e6f4ea; color: #1e8e3e; border-color: #ceead6; }
-.cal-total { background: #fce8e6; color: #d93025; border-color: #fad2cf; }
-.cal-cleared { background: #fff7e0; color: #b05e00; border-color: #ffe082; }
-
-        /* Right: Permanent Side Panel */
-        .calendar-side { width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+/* Add these for the new table rows */
+.date-row { cursor: pointer; transition: background-color 0.2s; }
+.date-row:hover { background-color: var(--background); }
+.date-row.selected { background-color: #d2e3fc !important; }
         .side-header { padding: 20px 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
         .side-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .side-header h3 { font-size: 22px; font-weight: 500; color: var(--text-main); margin: 0; letter-spacing: -0.3px; }
@@ -644,7 +578,19 @@
                         </div>
                         <button class="btn btn-outline" onclick="goToCurrentMonth()">Today</button>
                     </div>
-                    <div id="calendarGridContainer" class="calendar-grid-container"></div>
+                    <div class="date-table-wrapper" style="flex: 1; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="position: sticky; top: 0; background: var(--surface); padding: 12px; font-size: 13px; font-weight: 500; color: var(--text-muted); text-align: left; border-bottom: 1px solid var(--border); z-index: 10;">Date</th>
+                                    <th style="position: sticky; top: 0; background: var(--surface); padding: 12px; font-size: 13px; font-weight: 500; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border); z-index: 10;">Amount</th>
+                                    <th style="position: sticky; top: 0; background: var(--surface); padding: 12px; font-size: 13px; font-weight: 500; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border); z-index: 10;">Cleared</th>
+                                    <th style="position: sticky; top: 0; background: var(--surface); padding: 12px; font-size: 13px; font-weight: 500; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border); z-index: 10;">Limit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calendarListBody"></tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="calendar-side" id="calendarSidePanel">
                     <div class="side-header">
@@ -1318,25 +1264,11 @@
         
         document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
 
-        const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const listBody = document.getElementById('calendarListBody');
         
-        // Grid calculation
-        const totalCellsNeeded = firstDay + daysInMonth;
-        const weeks = Math.ceil(totalCellsNeeded / 7);
-        
-        const calContainer = document.getElementById('calendarGridContainer');
-        calContainer.style.setProperty('--week-count', weeks);
-        calContainer.innerHTML = '';
-
-        // 1. Headers
-        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        dayNames.forEach(d => {
-            const div = document.createElement('div');
-            div.className = 'cal-day-header';
-            div.textContent = d;
-            calContainer.appendChild(div);
-        });
+        if(!listBody) return; // Prevent error if HTML isn't updated yet
+        listBody.innerHTML = '';
 
         // Data Aggregation
         const itemsByDay = {};
@@ -1360,15 +1292,8 @@
             }
         });
 
-        // 2. Padding Start
-        for(let i = 0; i < firstDay; i++) {
-            const div = document.createElement('div');
-            div.className = 'cal-cell empty';
-            calContainer.appendChild(div);
-        }
-
-        // 3. Days
         const today = new Date();
+        
         for(let i = 1; i <= daysInMonth; i++) {
             const feDayItems = getFixedExpensesForDate(year, month, i);
             if(feDayItems.length > 0) {
@@ -1379,35 +1304,45 @@
                 });
             }
 
-            const div = document.createElement('div');
-            div.className = 'cal-cell';
-            if(year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) div.classList.add('today');
-            if(selectedCalDate && year === selectedCalDate.getFullYear() && month === selectedCalDate.getMonth() && i === selectedCalDate.getDate()) div.classList.add('selected');
-
             const loopDateStr = `${year}-${String(month+1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             let saleActual = (salesData[loopDateStr] && salesData[loopDateStr].actual !== null) ? salesData[loopDateStr].actual : null;
             let salePredicted = (appConfig.startDate && loopDateStr < appConfig.startDate) ? 0 : appConfig.defaultSale;
 
-            const daySales = saleActual !== null ? saleActual : salePredicted;
-            const dayPayments = itemsByDay[i] ? itemsByDay[i].total : 0;
+            const dayLimit = saleActual !== null ? saleActual : salePredicted;
+            const dayAmount = itemsByDay[i] ? itemsByDay[i].total : 0;
             const dayCleared = itemsByDay[i] ? itemsByDay[i].clearedTotal : 0;
 
-            let saleHtml = (daySales > 0 || saleActual !== null) ? 
-                `<span class="cal-sale ${saleActual !== null ? 'actual' : 'predicted'}">₹ ${new Intl.NumberFormat('en-IN').format(daySales)}</span>` : '';
-            let issuedHtml = dayPayments > 0 ? `<span class="cal-total">₹ ${new Intl.NumberFormat('en-IN').format(dayPayments)}</span>` : '';
-            let clearHtml = dayCleared > 0 ? `<span class="cal-cleared">₹ ${new Intl.NumberFormat('en-IN').format(dayCleared)}</span>` : '';
+            const tr = document.createElement('tr');
+            tr.className = 'date-row';
+            
+            // Check for today and selection
+            if(year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) {
+                tr.classList.add('today');
+            }
+            if(selectedCalDate && year === selectedCalDate.getFullYear() && month === selectedCalDate.getMonth() && i === selectedCalDate.getDate()) {
+                tr.classList.add('selected');
+            }
 
-            div.innerHTML = `<div class="cal-top-left">${saleHtml}${issuedHtml}${clearHtml}</div><div class="cal-date">${i}</div>`;
-            div.onclick = () => { selectedCalDate = new Date(year, month, i); renderCalendar(); }; 
-            calContainer.appendChild(div);
-        }
+            const formattedDate = `${String(i).padStart(2, '0')}/${String(month+1).padStart(2, '0')}/${year}`;
 
-        // 4. Padding End (CRITICAL: This fills the rest of the grid so it doesn't break)
-        const remainingCells = (weeks * 7) - totalCellsNeeded;
-        for(let i = 0; i < remainingCells; i++) {
-            const div = document.createElement('div');
-            div.className = 'cal-cell empty';
-            calContainer.appendChild(div);
+            // Format numbers visually
+            const limitStr = dayLimit > 0 ? formatCurrency(dayLimit) : '-';
+            const amountStr = dayAmount > 0 ? formatCurrency(dayAmount) : '-';
+            const clearedStr = dayCleared > 0 ? formatCurrency(dayCleared) : '-';
+
+            tr.innerHTML = `
+                <td style="text-align: left; padding: 12px; border-bottom: 1px solid var(--border-light); font-weight: ${tr.classList.contains('today') ? '700' : '500'}; color: ${tr.classList.contains('today') ? 'var(--primary)' : 'var(--text-main)'}; white-space: nowrap;">${formattedDate} ${tr.classList.contains('today') ? '<span style="font-size: 10px; background: var(--primary); color: white; padding: 2px 6px; border-radius: 10px; margin-left: 4px;">TODAY</span>' : ''}</td>
+                <td style="text-align: right; padding: 12px; border-bottom: 1px solid var(--border-light); color: ${dayAmount > 0 ? 'var(--error)' : 'var(--text-muted)'}; font-weight: 500;">${amountStr}</td>
+                <td style="text-align: right; padding: 12px; border-bottom: 1px solid var(--border-light); color: ${dayCleared > 0 ? 'var(--success)' : 'var(--text-muted)'}; font-weight: 500;">${clearedStr}</td>
+                <td style="text-align: right; padding: 12px; border-bottom: 1px solid var(--border-light); color: var(--info); font-weight: 500;">${limitStr}</td>
+            `;
+            
+            // Make row clickable
+            tr.onclick = () => { 
+                selectedCalDate = new Date(year, month, i); 
+                renderCalendar(); 
+            }; 
+            listBody.appendChild(tr);
         }
 
         renderSidePanel();
