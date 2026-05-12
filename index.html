@@ -215,7 +215,7 @@
 }
 
 .calendar-main {
-    flex: 3; /* 30% Width */
+    flex: 4; /* 40% Width */
     display: flex;
     flex-direction: column;
     background: var(--surface);
@@ -226,7 +226,7 @@
 
 /* Right: Permanent Side Panel */
 .calendar-side { 
-    flex: 7; /* 70% Width */ 
+    flex: 6; /* 60% Width */ 
     background: var(--surface); 
     border: 1px solid var(--border); 
     border-radius: 8px; 
@@ -647,12 +647,12 @@
                         <!-- Payment Info -->
                         <div class="filter-group">
                             <label class="filter-label">Purchase Date (Invoice Date)</label>
-                            <input type="date" id="dpPurchaseDate" class="modern-input" oninput="renderDpCalendar()" onchange="renderDpCalendar()" style="font-size: 16px; height: 44px;">
+                            <input type="date" id="dpPurchaseDate" class="modern-input" oninput="onDpPurchaseDateChange()" onchange="onDpPurchaseDateChange()" style="font-size: 16px; height: 44px;">
                         </div>
                         
                         <div class="filter-group">
                             <label class="filter-label">Scheduled Payment Date</label>
-                            <input type="date" id="dpDate" class="modern-input" readonly style="font-size: 16px; height: 44px; background: var(--info-bg); color: var(--info);" placeholder="Select from table ->">
+                            <input type="date" id="dpDate" class="modern-input" style="font-size: 16px; height: 44px;">
                         </div>
 
                         <div class="filter-group" style="grid-column: span 2;">
@@ -666,9 +666,9 @@
 
                 <!-- Right Table (35%) -->
                 <div class="dashboard-right" style="flex: 35; padding: 0; display: flex; flex-direction: column;">
-                    <div class="calendar-header" style="padding: 16px; border-bottom: 1px solid var(--border); background: var(--background);">
-                        <h3 style="font-size: 16px; font-weight: 500; text-align: center; color: var(--text-main);">Available Dates</h3>
-                        <p style="font-size: 12px; text-align: center; color: var(--text-muted); margin-top: 4px;">Based on Purchase Date + Credit Days</p>
+                    <div class="calendar-header" style="padding: 16px; border-bottom: 1px solid var(--border); background: var(--background); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="font-size: 16px; font-weight: 500; color: var(--text-main);">Available Dates</h3>
+                        <button class="btn btn-outline" onclick="increaseDpWindow()" style="border-radius: 20px; padding: 0 12px; height: 32px; font-size: 13px; font-weight: bold;">+10 Days</button>
                     </div>
                     <div class="date-table-wrapper" style="flex: 1; overflow-y: auto;">
                         <table style="width: 100%; border-collapse: collapse;">
@@ -1470,6 +1470,18 @@
         });
     }
 
+    let dpWindowDays = 10; // Tracks the size of the date window
+
+    function onDpPurchaseDateChange() {
+        dpWindowDays = 10; // Reset to 10 when user picks a new date
+        renderDpCalendar();
+    }
+
+    function increaseDpWindow() {
+        dpWindowDays += 10; // Add 10 more days
+        renderDpCalendar();
+    }
+
     function updateDpVendorInfo() {
         const vName = document.getElementById('dpVendor').value;
         if (vName && vendors[vName]) {
@@ -1479,7 +1491,8 @@
             document.getElementById('dpCategory').value = '';
             document.getElementById('dpDays').value = '';
         }
-        renderDpCalendar(); // Trigger dynamic table update
+        dpWindowDays = 10; // Reset to 10 when user changes vendor
+        renderDpCalendar(); 
     }
 
     function renderDpCalendar() {
@@ -1503,9 +1516,9 @@
         let startDate = new Date(purchaseDate);
         startDate.setDate(startDate.getDate() + vData.creditDays);
         
-        // End Date = Start Date + 10 Days
+        // End Date = Start Date + dpWindowDays (starts at 10, expands on click)
         let endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + 10);
+        endDate.setDate(endDate.getDate() + dpWindowDays);
 
         dpListBody.innerHTML = '';
         
@@ -2070,6 +2083,8 @@
     window.deleteExpense = deleteExpense;
     window.renderManagePurchases = renderManagePurchases;
     window.renderManageDirectPayments = renderManageDirectPayments;
+    window.increaseDpWindow = increaseDpWindow;
+    window.onDpPurchaseDateChange = onDpPurchaseDateChange;
     window.deleteBill = deleteBill;
     window.confirmPendingBill = confirmPendingBill;
     window.discardPendingBill = discardPendingBill;
