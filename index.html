@@ -700,6 +700,7 @@
                     <button class="settings-tab-btn" onclick="switchSettingsTab('expense')">Fixed Expenses</button>
                     <button class="settings-tab-btn" onclick="switchSettingsTab('purchases')">Manage Purchases</button>
                     <button class="settings-tab-btn" onclick="switchSettingsTab('pending')">Pending Purchases</button>
+                    <button class="settings-tab-btn" onclick="switchSettingsTab('direct')">Manage Direct Payments</button>
                 </div>
                 <div class="settings-body" id="settingsBody">
                     
@@ -836,6 +837,32 @@
                                     </thead>
                                     <tbody id="pendingPurchasesBody"></tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manage Direct Payments Pane -->
+                    <div id="pane-direct" class="settings-pane">
+                        <div class="settings-section">
+                            <h4 style="margin-bottom: 16px; font-weight: 500;">Manage Direct Payments</h4>
+                            <div class="filter-group-row" style="margin-bottom: 16px; width: fit-content;">
+                                <span class="material-symbols-outlined" style="color:var(--text-muted)">search</span>
+                                <input type="text" id="directSettingsSearch" class="modern-input" placeholder="Search Supplier" oninput="renderManageDirectPayments()" style="border:none; width: 300px; padding:0;">
+                            </div>
+                            <div style="border: 1px solid var(--border); border-radius: 8px; max-height: 400px; display: flex; flex-direction: column; overflow: hidden; background: var(--surface);">
+                                <div style="overflow-y: auto; flex: 1;">
+                                    <table style="width: 100%; border-collapse: collapse;">
+                                        <thead>
+                                            <tr>
+                                                <th style="position: sticky; top: 0; background: var(--surface); z-index: 10; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border);">Supplier</th>
+                                                <th style="position: sticky; top: 0; background: var(--surface); z-index: 10; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border);">Scheduled Date</th>
+                                                <th style="position: sticky; top: 0; background: var(--surface); z-index: 10; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border);">Amount</th>
+                                                <th style="position: sticky; top: 0; background: var(--surface); z-index: 10; padding: 12px 16px; text-align: right; border-bottom: 1px solid var(--border);">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="manageDirectBody"></tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1284,7 +1311,7 @@
         else if(view === 'table') { document.getElementById('viewTableBtn').classList.add('active'); renderTable(); }
         else if(view === 'calendar') { document.getElementById('viewCalendarBtn').classList.add('active'); renderCalendar(); }
         else if(view === 'directPayment') { document.getElementById('viewDirectPaymentBtn').classList.add('active'); renderCalendar(); populateDpVendorDropdown(); }
-        else if(view === 'settings') { document.getElementById('viewSettingsBtn').classList.add('active-state'); renderManagePurchases(); renderPendingPurchases(); }
+        else if(view === 'settings') { document.getElementById('viewSettingsBtn').classList.add('active-state'); renderManagePurchases(); renderPendingPurchases(); renderManageDirectPayments(); }
         applyFilterVisibility();
     }
 
@@ -1811,12 +1838,41 @@
         const tbody = document.getElementById('managePurchasesBody'); tbody.innerHTML = '';
         const query = (document.getElementById('purchaseSettingsSearch').value || '').toLowerCase().trim();
         if (query.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);"><span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 8px; opacity: 0.5;">search</span>Type a Supplier Name or Bill No to find purchases.</td></tr>`; return; }
-        const filteredBills = bills.filter(b => b.supplier.toLowerCase().includes(query) || b.billNo.toLowerCase().includes(query));
+        // Added b.billNo !== 'DIRECT-PAY' so they don't show up in the standard purchase list
+        const filteredBills = bills.filter(b => b.billNo !== 'DIRECT-PAY' && (b.supplier.toLowerCase().includes(query) || b.billNo.toLowerCase().includes(query)));
         if (filteredBills.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);"><span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 8px; opacity: 0.5;">search_off</span>No purchases found matching "${query}".</td></tr>`; return; }
         
         filteredBills.slice(0, 100).forEach(b => { 
             const tr = document.createElement('tr');
             tr.innerHTML = `<td style="font-weight: 500;">${b.supplier}</td><td>${b.billNo}</td><td>${formatCurrency(b.amount)}</td><td>${b.dueDateStr}</td><td style="text-align: right;"><button class="icon-btn" onclick="openEditBillModal('${b.id}')" style="display:inline-flex; width:32px; height:32px; color:var(--primary);"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button><button class="icon-btn" onclick="deleteBill('${b.id}')" style="display:inline-flex; width:32px; height:32px; color: var(--error);"><span class="material-symbols-outlined" style="font-size: 18px;">delete</span></button></td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderManageDirectPayments() {
+        const tbody = document.getElementById('manageDirectBody');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        const query = (document.getElementById('directSettingsSearch').value || '').toLowerCase().trim();
+        
+        // Filter only Direct Payments
+        const dpBills = bills.filter(b => b.billNo === 'DIRECT-PAY' && b.supplier.toLowerCase().includes(query));
+        
+        if (dpBills.length === 0) { 
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);"><span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 8px; opacity: 0.5;">search_off</span>No direct payments found.</td></tr>`; 
+            return; 
+        }
+        
+        dpBills.sort((a,b) => b.dueDate - a.dueDate).forEach(b => { 
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-light); font-weight: 500;">${b.supplier}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-light);">${b.dueDateStr}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-light); font-weight: 500;">${formatCurrency(b.amount)}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid var(--border-light); text-align: right;">
+                    <button class="icon-btn" onclick="openEditBillModal('${b.id}')" style="display:inline-flex; width:32px; height:32px; color:var(--primary);" title="Edit"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button>
+                    <button class="icon-btn" onclick="deleteBill('${b.id}')" style="display:inline-flex; width:32px; height:32px; color: var(--error);" title="Delete"><span class="material-symbols-outlined" style="font-size: 18px;">delete</span></button>
+                </td>`;
             tbody.appendChild(tr);
         });
     }
@@ -1851,9 +1907,9 @@
     function saveEditedBill() {
         const id = document.getElementById('editBillId').value; const amt = parseFloat(document.getElementById('editBillAmount').value); const dateYMD = document.getElementById('editBillDueDate').value;
         if(!id || isNaN(amt) || !dateYMD) return; const bill = bills.find(b => b.id === id);
-        if(bill) { bill.amount = amt; const [y, m, d] = dateYMD.split('-'); const newDateObj = new Date(y, m - 1, d); bill.dueDateStr = formatDateToDDMMYYYY(newDateObj); bill.dueDate = newDateObj.getTime(); bill.isManuallyMoved = true; saveBills(); renderManagePurchases(); closeEditBillModal(); if(currentView === 'table') renderTable(); if(currentView === 'calendar') renderCalendar(); }
+        if(bill) { bill.amount = amt; const [y, m, d] = dateYMD.split('-'); const newDateObj = new Date(y, m - 1, d); bill.dueDateStr = formatDateToDDMMYYYY(newDateObj); bill.dueDate = newDateObj.getTime(); bill.isManuallyMoved = true; saveBills(); renderManagePurchases(); renderManageDirectPayments(); closeEditBillModal(); if(currentView === 'table') renderTable(); if(currentView === 'calendar') renderCalendar(); }
     }
-    function deleteBill(id) { if(confirm("Permanently delete this purchase/bill?")) { bills = bills.filter(b => b.id !== id); saveBills(); renderManagePurchases(); if(currentView === 'table') renderTable(); if(currentView === 'calendar') renderCalendar(); } }
+    function deleteBill(id) { if(confirm("Permanently delete this entry?")) { bills = bills.filter(b => b.id !== id); saveBills(); renderManagePurchases(); renderManageDirectPayments(); if(currentView === 'table') renderTable(); if(currentView === 'calendar') renderCalendar(); } }
 
     function populateVendorFilter() { const select = document.getElementById('filterVendor'); select.innerHTML = '<option value="All">All Vendors</option>'; Object.keys(vendors).sort().forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.textContent = v; select.appendChild(opt); }); }
 
@@ -2013,6 +2069,7 @@
     window.addFixedExpense = addFixedExpense;
     window.deleteExpense = deleteExpense;
     window.renderManagePurchases = renderManagePurchases;
+    window.renderManageDirectPayments = renderManageDirectPayments;
     window.deleteBill = deleteBill;
     window.confirmPendingBill = confirmPendingBill;
     window.discardPendingBill = discardPendingBill;
