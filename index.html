@@ -1915,14 +1915,14 @@
                    </div>`;
             }
 
-            // --- Details Grid (Bigger and Renamed) ---
+            // --- Details Grid (Act Days & Difference) ---
             let detailsGrid = '';
             if (!item.isFixedExpense && !item.isDailyExpense) {
                 let purDate = item.dateStr || '-';
                 let credDays = vData.creditDays;
                 
                 let actualDueDateStr = '-';
-                let diffText = '-';
+                let actDaysText = '-';
 
                 if (item.billDate) {
                     let actualDueDateObj = new Date(item.billDate);
@@ -1930,12 +1930,16 @@
                     actualDueDateStr = formatDateToDDMMYYYY(actualDueDateObj);
                     
                     if (item.dueDate) {
-                        const diffTime = item.dueDate - actualDueDateObj.getTime();
-                        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                        // Total days from purchase to scheduled payment
+                        const totalDaysTaken = Math.round((item.dueDate - item.billDate) / (1000 * 60 * 60 * 24));
+                        const delay = totalDaysTaken - credDays;
                         
-                        if (diffDays > 0) diffText = `<span style="color: var(--error); font-weight: 600;">+${diffDays} Days</span>`;
-                        else if (diffDays < 0) diffText = `<span style="color: var(--success); font-weight: 600;">${diffDays} Days</span>`;
-                        else diffText = `<span style="color: var(--text-main); font-weight: 600;">0 Days</span>`;
+                        let delayHtml = '';
+                        if (delay > 0) delayHtml = `<span style="color: var(--error); font-weight: 600;">(+${delay})</span>`;
+                        else if (delay < 0) delayHtml = `<span style="color: var(--success); font-weight: 600;">(${delay})</span>`;
+                        else delayHtml = `<span style="color: var(--text-muted); font-weight: 500;">(0)</span>`;
+                        
+                        actDaysText = `<strong style="color: var(--text-main); font-size: 13px;">${totalDaysTaken}</strong> ${delayHtml}`;
                     }
                 }
 
@@ -1944,7 +1948,7 @@
                     <div><span style="color: var(--text-muted);">Pur Date:</span> <strong style="color: var(--text-main);">${purDate}</strong></div>
                     <div><span style="color: var(--text-muted);">Due Days:</span> <strong style="color: var(--text-main);">${credDays}</strong></div>
                     <div><span style="color: var(--text-muted);">Act Due:</span> <strong style="color: var(--text-main);">${actualDueDateStr}</strong></div>
-                    <div><span style="color: var(--text-muted);">Difference:</span> ${diffText}</div>
+                    <div><span style="color: var(--text-muted);">Act Days:</span> ${actDaysText}</div>
                 </div>`;
             } else {
                 detailsGrid = `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; padding: 6px; background: var(--background); border-radius: 4px;">${item.isFixedExpense ? 'Monthly Fixed Expense' : 'Manually Recorded Daily Expense'}</div>`;
