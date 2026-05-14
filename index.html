@@ -1883,29 +1883,27 @@
                 let editTools = '';
 
                 if (item.isCleared) {
-                    statusAction = `<label title="Undo clear" style="font-size:12px; cursor: pointer;"><input type="checkbox" onchange="undoClear('${item.id}')" checked style="accent-color: var(--success); transform: scale(1.1); margin-right:6px;"> Cleared</label>`;
+                    statusAction = `<label title="Undo clear" style="font-size:13px; font-weight:500; cursor: pointer; display: flex; align-items: center;"><input type="checkbox" onchange="undoClear('${item.id}')" checked style="accent-color: var(--success); transform: scale(1.2); margin-right:8px;"> Cleared</label>`;
                 } else if (item.isIssued) {
-                    statusAction = `<label title="Mark as Cleared" style="font-size:12px; cursor: pointer;"><input type="checkbox" onchange="markCleared('${item.id}')" style="accent-color: var(--primary); transform: scale(1.1); margin-right:6px;"> Clear</label>`;
+                    statusAction = `<label title="Mark as Cleared" style="font-size:13px; font-weight:500; cursor: pointer; display: flex; align-items: center;"><input type="checkbox" onchange="markCleared('${item.id}')" style="accent-color: var(--primary); transform: scale(1.2); margin-right:8px;"> Clear</label>`;
                     if (item.isUnlocked) {
                         editTools = `
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <input type="date" value="${formatDateToYYYYMMDD(new Date(item.dueDate))}" onchange="moveBillDate('${item.id}', this.value)" style="width:105px; height:26px; font-size:11px; padding:0 6px;">
-                                <button class="icon-btn" style="height:26px; width:26px;" onclick="openEditBillModal('${item.id}')" title="Edit"><span class="material-symbols-outlined" style="font-size:16px;">edit</span></button>
-                                <button class="icon-btn" style="height:26px; width:26px;" onclick="openSplitBillModal('${item.id}')" title="Split"><span class="material-symbols-outlined" style="font-size:16px;">call_split</span></button>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <button class="btn" style="height:28px; padding:0 10px; font-size:12px; font-weight:500; background:var(--primary-bg); color:var(--primary); border:1px solid rgba(26,115,232,0.3); border-radius:6px; display:flex; align-items:center; gap:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openEditBillModal('${item.id}')" title="Edit Bill"><span class="material-symbols-outlined" style="font-size:16px;">edit</span> Edit</button>
+                                <button class="btn" style="height:28px; padding:0 10px; font-size:12px; font-weight:500; background:var(--surface); color:var(--text-main); border:1px solid var(--border); border-radius:6px; display:flex; align-items:center; gap:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openSplitBillModal('${item.id}')" title="Split Payment"><span class="material-symbols-outlined" style="font-size:16px;">call_split</span> Split</button>
                             </div>`;
                     } else {
                         editTools = `
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <button class="btn btn-danger" style="height:26px; padding: 0 8px; font-size:11px; background: #fff; border: 1px solid var(--error);" onclick="unlockBill('${item.id}')" title="Unlock"><span class="material-symbols-outlined" style="font-size:14px;">lock</span> Unlock</button>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <button class="btn btn-danger" style="height:28px; padding: 0 10px; font-size:12px; font-weight:500; background: #fff; border: 1px solid var(--error); border-radius:6px; display:flex; align-items:center; gap:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="unlockBill('${item.id}')" title="Unlock"><span class="material-symbols-outlined" style="font-size:16px;">lock</span> Unlock</button>
                             </div>`;
                     }
                 } else {
-                    statusAction = `<label title="Mark as Issued" style="font-size:12px; cursor: pointer;"><input type="checkbox" onchange="markIssued('${item.id}')" style="accent-color: var(--warning); transform: scale(1.1); margin-right:6px;"> Issue</label>`;
+                    statusAction = `<label title="Mark as Issued" style="font-size:13px; font-weight:500; cursor: pointer; display: flex; align-items: center;"><input type="checkbox" onchange="markIssued('${item.id}')" style="accent-color: var(--warning); transform: scale(1.2); margin-right:8px;"> Issue</label>`;
                     editTools = `
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <input type="date" value="${formatDateToYYYYMMDD(new Date(item.dueDate))}" onchange="moveBillDate('${item.id}', this.value)" style="width:105px; height:26px; font-size:11px; padding:0 6px;">
-                            <button class="icon-btn" style="height:26px; width:26px;" onclick="openEditBillModal('${item.id}')" title="Edit"><span class="material-symbols-outlined" style="font-size:16px;">edit</span></button>
-                            <button class="icon-btn" style="height:26px; width:26px;" onclick="openSplitBillModal('${item.id}')" title="Split"><span class="material-symbols-outlined" style="font-size:16px;">call_split</span></button>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button class="btn" style="height:28px; padding:0 10px; font-size:12px; font-weight:500; background:var(--primary-bg); color:var(--primary); border:1px solid rgba(26,115,232,0.3); border-radius:6px; display:flex; align-items:center; gap:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openEditBillModal('${item.id}')" title="Edit Bill"><span class="material-symbols-outlined" style="font-size:16px;">edit</span> Edit</button>
+                            <button class="btn" style="height:28px; padding:0 10px; font-size:12px; font-weight:500; background:var(--surface); color:var(--text-main); border:1px solid var(--border); border-radius:6px; display:flex; align-items:center; gap:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openSplitBillModal('${item.id}')" title="Split Payment"><span class="material-symbols-outlined" style="font-size:16px;">call_split</span> Split</button>
                         </div>`;
                 }
 
