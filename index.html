@@ -476,6 +476,23 @@
         </div>
     </div>
 
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-card" style="max-width: 350px;">
+            <div class="modal-header">
+                <h3 id="confirmModalTitle">Confirm Action</h3>
+                <button class="icon-btn" style="width: 32px; height: 32px;" onclick="closeConfirmModal()"><span class="material-symbols-outlined" style="font-size: 20px;">close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalText" style="font-size: 14px; color: var(--text-muted);"></p>
+                <div style="display: flex; gap: 12px; margin-top: 8px;">
+                    <button class="btn btn-outline" style="flex: 1;" onclick="closeConfirmModal()">Cancel</button>
+                    <button class="btn btn-primary" id="confirmModalBtn" style="flex: 1;" onclick="executeConfirm()">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- App Header -->
     <header>
         <div class="brand">
@@ -1094,6 +1111,9 @@
     function closePasswordModal() {
         document.getElementById('passwordModal').classList.remove('active');
         passwordCallback = null;
+        // Revert the visual checkbox toggle if canceled
+        if (currentView === 'calendar') renderSidePanel();
+        if (currentView === 'table') renderTable();
     }
     
     function submitPassword() {
@@ -1715,14 +1735,49 @@
     function setSideFilter(cat) { sideFilterCat = cat; updateSideFilterUI(); renderSidePanel(); }
     function updateSideFilterUI() { document.querySelectorAll('.side-filter-btn').forEach(btn => { btn.classList.toggle('active', btn.dataset.cat === sideFilterCat); }); }
     
+    let confirmCallback = null;
+    let cancelCallback = null;
+
+    function showConfirmModal(title, text, onConfirm, onCancel) {
+        document.getElementById('confirmModalTitle').textContent = title;
+        document.getElementById('confirmModalText').textContent = text;
+        document.getElementById('confirmModal').classList.add('active');
+        confirmCallback = onConfirm;
+        cancelCallback = onCancel;
+    }
+
+    function closeConfirmModal() {
+        document.getElementById('confirmModal').classList.remove('active');
+        if (cancelCallback) cancelCallback(); // Reverts the checkbox visually
+        confirmCallback = null;
+        cancelCallback = null;
+    }
+
+    function executeConfirm() {
+        document.getElementById('confirmModal').classList.remove('active');
+        if (confirmCallback) confirmCallback();
+        confirmCallback = null;
+        cancelCallback = null;
+    }
+
     function markIssued(id) {
-        const bill = bills.find(b => b.id === id);
-        if(bill) { bill.isIssued = true; bill.isUnlocked = false; saveBills(); renderCalendar(); if(currentView === 'table') renderTable(); }
+        showConfirmModal('Confirm Issue', 'Are you sure you want to mark this payment as Issued?', () => {
+            const bill = bills.find(b => b.id === id);
+            if(bill) { bill.isIssued = true; bill.isUnlocked = false; saveBills(); renderCalendar(); if(currentView === 'table') renderTable(); }
+        }, () => {
+            if(currentView === 'calendar') renderSidePanel();
+            if(currentView === 'table') renderTable();
+        });
     }
     
     function markCleared(id) {
-        const bill = bills.find(b => b.id === id);
-        if(bill) { bill.isCleared = true; saveBills(); renderCalendar(); if(currentView === 'table') renderTable(); }
+        showConfirmModal('Confirm Clear', 'Are you sure you want to mark this payment as Cleared?', () => {
+            const bill = bills.find(b => b.id === id);
+            if(bill) { bill.isCleared = true; saveBills(); renderCalendar(); if(currentView === 'table') renderTable(); }
+        }, () => {
+            if(currentView === 'calendar') renderSidePanel();
+            if(currentView === 'table') renderTable();
+        });
     }
     
     function undoClear(id) {
@@ -2239,6 +2294,9 @@
     window.markCleared = markCleared;
     window.undoClear = undoClear;
     window.unlockBill = unlockBill;
+    window.unlockBill = unlockBill;
+    window.closeConfirmModal = closeConfirmModal;
+    window.executeConfirm = executeConfirm;
     window.openSplitFeModal = openSplitFeModal;
     window.moveBillDate = moveBillDate;
     window.openEditBillModal = openEditBillModal;
